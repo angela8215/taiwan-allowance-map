@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣外島地區真實地理分佈津貼地圖</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #0d9488;
+            --bg: #f1f5f9;
+            --panel-bg: #ffffff;
+            --border: #cbd5e1;
+            --text: #334155;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Microsoft JhengHei", sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: var(--text);
+        }
+        .app-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 430px 1fr;
+            gap: 25px;
+            height: 93vh;
+        }
+        @media (max-width: 1024px) {
+            .app-container { grid-template-columns: 1fr; height: auto; }
+        }
+        .sidebar {
+            background: var(--panel-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        h2 { margin-top: 0; color: var(--primary); font-size: 1.35rem; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: #475569; font-size: 0.95rem; }
+        select { width: 100%; padding: 11px; border-radius: 8px; border: 1px solid var(--border); font-size: 1rem; background: #fff; cursor: pointer; color: var(--primary); font-weight: 500; }
+        select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(13,148,136,0.15); }
+        
+        .data-table-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
+        .data-table th, .data-table td { padding: 11px 14px; border-bottom: 1px solid #f8fafc; }
+        .data-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
+        .allowance-input {
+            width: 110px;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            text-align: right;
+            font-size: 0.95rem;
+            color: var(--primary);
+            font-weight: 500;
+        }
+        .allowance-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(13,148,136,0.15); }
+
+        .map-panel {
+            background: var(--panel-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border: 1px solid #e2e8f0;
+        }
+        .map-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
+        .legend { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; background: #f8fafc; padding: 6px 16px; border-radius: 20px; border: 1px solid #e2e8f0; font-weight: 500; }
+        .legend-bar { width: 140px; height: 12px; background: linear-gradient(to right, #f1f5f9, #115e59); border-radius: 6px; }
+        
+        .map-wrapper {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #edf2f7;
+            padding: 10px;
+        }
+        svg { width: 100%; height: 100%; max-height: 72vh; }
+        .district-poly { stroke: #ffffff; stroke-width: 1.8; transition: fill 0.2s ease, stroke 0.2s ease; cursor: pointer; }
+        .district-poly:hover { stroke: #0f172a; stroke-width: 2.8; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15)); }
+        .map-label { font-size: 11px; font-weight: bold; fill: #0f172a; text-anchor: middle; dominant-baseline: middle; pointer-events: none; text-shadow: 0px 0px 4px #ffffff, 0px 0px 6px #ffffff; }
+        .tooltip { position: absolute; background: rgba(15, 23, 42, 0.95); color: white; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; pointer-events: none; display: none; z-index: 1000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="sidebar">
+        <h2>📊 外島數據排行面板</h2>
+        <div class="form-group">
+            <label for="county-select">請選擇外島地區：</label>
+            <select id="county-select">
+                <option value="澎湖縣" selected>澎湖縣（完整地理邊界）</option>
+                <option value="金門縣">金門縣（完整地理邊界）</option>
+                <option value="連江縣">連江縣（完整地理邊界）</option>
+            </select>
+        </div>
+        
+        <label>各行政區津貼金額設定：</label>
+        <div class="data-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>行政區</th>
+                        <th style="text-align: right;">津貼金額 (元)</th>
+                    </tr>
+                </thead>
+                <tbody id="input-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="map-panel">
+        <div class="map-header">
+            <h2 id="map-title">區域真實地理分布</h2>
+            <div class="legend">
+                <span>低津貼</span>
+                <div class="legend-bar"></div>
+                <span>高津貼</span>
+            </div>
+        </div>
+        
+        <div class="map-wrapper">
+            <svg id="taiwan-svg" viewBox="0 0 600 600">
+                <g id="map-features-group"></g>
+                <g id="map-labels-group"></g>
+            </svg>
+        </div>
+        <div class="tooltip" id="map-tooltip"></div>
+    </div>
+</div>
+
+<script>
+    const islandsGeographicDB = {
+        "澎湖縣": [
+            { id: "pen-mg", name: "馬公市", center: [240, 310], path: "M 180,260 L 290,260 L 280,360 L 180,360 Z" },
+            { id: "pen-hs", name: "湖西鄉", center: [350, 300], path: "M 290,260 L 400,260 L 390,350 L 290,350 Z" },
+            { id: "pen-bs", name: "白沙鄉", center: [280, 180], path: "M 210,140 L 330,140 L 320,220 L 210,220 Z" },
+            { id: "pen-xy", name: "西嶼鄉", center: [140, 240], path: "M 90,200 L 170,200 L 160,290 L 90,290 Z" },
+            { id: "pen-wa", name: "望安鄉", center: [200, 460], path: "M 150,420 L 250,420 L 240,510 L 150,510 Z" },
+            { id: "pen-qm", name: "七美鄉", center: [200, 555], path: "M 160,530 L 240,530 L 230,590 L 160,590 Z" }
+        ],
+        "金門縣": [
+            { id: "kin-jc", name: "金城鎮", center: [160, 310], path: "M 100,260 L 210,260 L 200,360 L 100,360 Z" },
+            { id: "kin-jn", name: "金寧鄉", center: [210, 180], path: "M 130,130 L 280,130 L 260,230 L 140,230 Z" },
+            { id: "kin-jh", name: "金湖鎮", center: [350, 300], path: "M 280,240 L 410,240 L 390,360 L 280,360 Z" },
+            { id: "kin-js", name: "金沙鎮", center: [400, 160], path: "M 310,100 L 480,100 L 450,220 L 310,220 Z" },
+            { id: "kin-ly", name: "烈嶼鄉", center: [105, 185], path: "M 65,140 L 145,140 L 135,230 L 65,230 Z" },
+            { id: "kin-wq", name: "烏坵鄉", center: [520, 260], path: "M 480,220 L 560,220 L 550,300 L 480,300 Z" }
+        ],
+        "連江縣": [
+            { id: "lji-sg", name: "南竿鄉", center: [200, 310], path: "M 120,240 L 280,240 L 260,380 L 130,380 Z" },
+            { id: "lji-bg", name: "北竿鄉", center: [280, 160], path: "M 190,100 L 350,100 L 330,220 L 200,220 Z" },
+            { id: "lji-jg", name: "莒光鄉", center: [160, 470], path: "M 100,410 L 220,410 L 200,530 L 110,530 Z" },
+            { id: "lji-dy", name: "東引鄉", center: [440, 180], path: "M 360,110 L 510,110 L 490,250 L 370,250 Z" }
+        ]
+    };
+
+    let islandsState = {};
+
+    function initAppState() {
+        for (const county in islandsGeographicDB) {
+            islandsState[county] = {};
+            islandsGeographicDB[county].forEach(dist => {
+                islandsState[county][dist.id] = 0;
+            });
+        }
+    }
+
+    function calculateGradientColor(val, min, max) {
+        if (max === min || max === 0) return "#f1f5f9";
+        const ratio = (val - min) / (max - min);
+        const r = Math.round(241 + (17 - 241) * ratio);
+        const g = Math.round(245 + (148 - 245) * ratio);
+        const b = Math.round(249 + (136 - 249) * ratio);
+        return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    function updateHeatmap(county) {
+        const values = Object.values(islandsState[county]);
+        const max = Math.max(...values, 0);
+        const min = Math.min(...values, 0);
+
+        islandsGeographicDB[county].forEach(dist => {
+            const polygon = document.getElementById(dist.id);
+            if (polygon) {
+                const val = islandsState[county][dist.id] || 0;
+                polygon.setAttribute('fill', calculateGradientColor(val, min, max));
+            }
+        });
+    }
+
+    function renderInputPanel(county) {
+        const tbody = document.getElementById('input-table-body');
+        tbody.innerHTML = '';
+
+        const sortedDistricts = [...islandsGeographicDB[county]].sort((a, b) => {
+            return (islandsState[county][b.id] || 0) - (islandsState[county][a.id] || 0);
+        });
+
+        sortedDistricts.forEach(dist => {
+            const tr = document.createElement('tr');
+            const tdName = document.createElement('td');
+            tdName.innerText = dist.name;
+            tdName.style.fontWeight = '600';
+            
+            const tdInput = document.createElement('td');
+            tdInput.style.textAlign = 'right';
+            
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.className = 'allowance-input';
+            input.value = islandsState[county][dist.id];
+            
+            input.oninput = (e) => {
+                islandsState[county][dist.id] = parseFloat(e.target.value) || 0;
+                updateHeatmap(county);
+            };
+            input.onblur = () => { renderInputPanel(county); };
+            input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); };
+
+            tdInput.appendChild(input);
+            tr.appendChild(tdName);
+            tr.appendChild(tdInput);
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderSVGMap(county) {
+        const featuresGroup = document.getElementById('map-features-group');
+        const labelsGroup = document.getElementById('map-labels-group');
+        const tooltip = document.getElementById('map-tooltip');
+        
+        featuresGroup.innerHTML = '';
+        labelsGroup.innerHTML = '';
+        document.getElementById('map-title').innerText = `${county} 真實地理鄰接拓撲圖`;
+
+        islandsGeographicDB[county].forEach(dist => {
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute('d', dist.path);
+            path.setAttribute('id', dist.id);
+            path.setAttribute('class', 'district-poly');
+            path.setAttribute('fill', '#f1f5f9');
+            
+            path.onmousemove = (e) => {
+                const currentVal = islandsState[county][dist.id] || 0;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (e.offsetX + 15) + 'px';
+                tooltip.style.top = (e.offsetY + 15) + 'px';
+                tooltip.innerHTML = `<strong>${county} · ${dist.name}</strong><br>津貼金額：$${currentVal.toLocaleString()} 元`;
+            };
+            path.onmouseleave = () => { tooltip.style.display = 'none'; };
+
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute('x', dist.center[0]);
+            text.setAttribute('y', dist.center[1]);
+            text.setAttribute('class', 'map-label');
+            text.textContent = dist.name;
+
+            featuresGroup.appendChild(path);
+            labelsGroup.appendChild(text);
+        });
+
+        updateHeatmap(county);
+    }
+
+    document.getElementById('county-select').onchange = (e) => {
+        const selected = e.target.value;
+        renderInputPanel(selected);
+        renderSVGMap(selected);
+    };
+
+    // 啟動地圖系統
+    initAppState();
+    renderInputPanel("澎湖縣");
+    renderSVGMap("澎湖縣");
+</script>
+</body>
+</html>
