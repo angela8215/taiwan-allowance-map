@@ -34,7 +34,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <!-- 標題/返回首頁 -->
         <button onclick="navigateTo('home')" class="inline-flex items-center gap-2 text-slate-700 hover:text-indigo-600 transition-colors font-bold text-lg">
-            <span>🗺️</span> 台灣津貼數據分佈動態地圖系統
+            <span>🗺️</span> SP智取店派遣津貼數據分佈動態地圖系統
         </button>
         <!-- 右側操作選單 (僅在地圖視圖顯示) -->
         <div id="editor-actions" class="hidden flex items-center gap-3">
@@ -60,10 +60,8 @@
 <div id="view-home" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-grow w-full">
     <div class="text-center max-w-3xl mx-auto mb-12">
         <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-normal">
-            數據視覺化，一手掌握全台津貼分佈
         </h2>
         <p class="mt-4 text-base sm:text-lg text-slate-500 leading-relaxed">
-            本系統將台灣 22 縣市劃分為四大地理區塊，採用真實地理鄰接拓撲關係設計，支援各行政區數據自訂與紅色彩度動態熱圖漸層顯示。請點選下方對應的區域地圖開始進行編輯與查看。
         </p>
     </div>
 
@@ -118,25 +116,6 @@
     </div>
 
     <!-- 首頁說明底牌 -->
-    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
-        <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center">
-            <span class="mr-2">💡</span> 全台單一檔案 (SPA) 開發預覽優勢
-        </h3>
-        <p class="text-slate-600 text-sm sm:text-base leading-relaxed mb-4">
-            本專案特別將所有子頁面整合在單一檔案內，完美避開了線上 Sandbox 環境不允許跨多個 HTML 頁面跳轉的限制。
-        </p>
-        <ul class="space-y-3 text-slate-600 text-sm sm:text-base">
-            <li class="flex items-start">
-                <span class="text-indigo-600 font-bold mr-2">✓</span>
-                <span><strong>即時數據同步：</strong> 您在各個分區輸入的數字會全部彙整至同一筆本地快取，不會互相割裂。</span>
-            </li>
-            <li class="flex items-start">
-                <span class="text-indigo-600 font-bold mr-2">✓</span>
-                <span><strong>全新縮放控制：</strong> 每個地圖右上方皆整合了「縮放控制滑桿」，文字過小時可自由拉大，再也無死角。</span>
-            </li>
-            <li class="flex items-start">
-                <span class="text-indigo-600 font-bold mr-2">✓</span>
-                <span><strong>玫瑰紅高質感熱力圖：</strong> 金額越高的行政區會染上越飽滿優雅的 Rose 玫瑰深紅，擺脫刺眼的原生綠。</span>
             </li>
         </ul>
     </div>
