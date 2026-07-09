@@ -1,35 +1,15 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台灣北部地區真實地理分佈津貼地圖</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif;
-        }
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
-    </style>
-</head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between antialiased">
-
+<!-- ... existing code ... -->
 <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <a href="index.html" class="inline-flex items-center gap-2 text-slate-600 hover:text-teal-600 transition-colors font-semibold text-sm">
+        <a href="index.html" class="inline-flex items-center gap-2 text-slate-600 hover:text-indigo-600 transition-colors font-semibold text-sm">
             <span>⬅</span> 返回首頁導覽
         </a>
         <div class="flex items-center gap-3">
-            <button class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1" onclick="triggerSave()">
+            <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1" onclick="triggerSave()">
                 💾 儲存數據
+            </button>
+            <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1" onclick="triggerDownloadHTML()">
+                📥 匯出數據
             </button>
             <button class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1" onclick="triggerReset()">
                 🧹 重設數據
@@ -37,176 +17,19 @@
         </div>
     </div>
 </header>
-
-<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        <!-- 左側：數據排行與設定面版 -->
-        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col h-[calc(100vh-240px)] min-h-[500px]">
-            <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <span>📊</span> 北部數據動態排行面版
-            </h2>
-            <div class="mb-4">
-                <label for="county-select" class="block text-xs font-bold text-slate-400 uppercase mb-2">請選擇北部縣市</label>
-                <select id="county-select" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium focus:outline-none focus:border-teal-500 transition-colors cursor-pointer">
-                    <option value="臺北市" selected>臺北市（完整地理拓撲）</option>
-                    <option value="新北市">新北市（完整地理拓撲）</option>
-                    <option value="桃園市">桃園市（完整地理拓撲）</option>
-                    <option value="基隆市">基隆市（完整地理拓撲）</option>
-                    <option value="新竹市">新竹市（完整地理拓撲）</option>
-                    <option value="新竹縣">新竹縣（完整地理拓撲）</option>
-                    <option value="宜蘭縣">宜蘭縣（完整地理拓撲）</option>
-                </select>
-            </div>
-            
-            <div class="flex-grow overflow-y-auto border border-slate-100 rounded-xl">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-slate-50 sticky top-0 z-10 border-b border-slate-100">
-                        <tr>
-                            <th class="px-4 py-3 text-xs font-bold text-slate-400 uppercase">行政區</th>
-                            <th class="px-4 py-3 text-xs font-bold text-slate-400 uppercase text-right">津貼金額 (元)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="input-table-body" class="divide-y divide-slate-50">
-                        <!-- 動態渲染 -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 右側：地圖展示面版 -->
-        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between position-relative h-[calc(100vh-240px)] min-h-[500px]">
-            <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
-                <h2 id="map-title" class="text-lg font-bold text-slate-900">真實地理分佈熱圖</h2>
-                <div class="flex items-center gap-2 bg-slate-50 border border-slate-150 px-4 py-1.5 rounded-full text-xs font-medium text-slate-500">
-                    <span>低津貼</span>
-                    <div class="w-20 h-2.5 rounded-full bg-gradient-to-r from-slate-100 to-teal-800"></div>
-                    <span>高津貼</span>
-                </div>
-            </div>
-            
-            <div class="flex-grow flex items-center justify-center bg-slate-50 rounded-xl border border-slate-100 p-4 relative overflow-hidden">
-                <svg id="taiwan-svg" class="w-full h-full max-h-[60vh]" viewBox="0 0 600 600">
-                    <g id="map-features-group"></g>
-                    <g id="map-labels-group"></g>
-                </svg>
-                <div id="map-tooltip" class="absolute pointer-events-none hidden bg-slate-900/95 text-white text-xs px-3 py-2 rounded-xl shadow-xl border border-white/10 z-50 transition-all duration-100 line-height-relaxed"></div>
-            </div>
-        </div>
-    </div>
-</main>
-
-<div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-white/10">
-    <span class="text-base" id="toast-icon">💾</span>
-    <span class="text-xs font-semibold" id="toast-message">數據已儲存</span>
-</div>
-
-<div id="confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
-    <div class="bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 max-w-sm w-full mx-4 transform scale-90 transition-transform duration-300" id="modal-box">
-        <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl mb-4">⚠️</div>
-        <h3 class="text-lg font-bold text-slate-900 mb-2">確定要重設數據嗎？</h3>
-        <p class="text-sm text-slate-500 mb-6 leading-relaxed">重設後，所有北部行政區已填寫的津貼數據將會歸零，此動作無法復原。</p>
-        <div class="flex gap-3 justify-end">
-            <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition-all" onclick="closeConfirmModal()">取消</button>
-            <button class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm shadow-rose-600/10" id="confirm-yes-btn">確定重設</button>
-        </div>
-    </div>
-</div>
-
-<footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
-    <div>© 2026 台灣地理分佈動態熱圖系統 · 北部地區</div>
-</footer>
-
+<!-- ... existing code ... -->
 <script>
     const STORAGE_KEY = "taiwan_allowance_north_data";
+    
+    // 初始化縮放比例 (預設 1.3 倍，使地圖更大更滿)
+    let zoomFactor = 1.3;
+
+    /* INITIAL_DEFAULTS_START */
+    const INITIAL_DEFAULTS = {};
+    /* INITIAL_DEFAULTS_END */
 
     const geographicDB = {
-        "臺北市": [
-            { id: "tpe-bt", name: "北投區", center: [180, 110], path: "M 130,130 L 230,90 L 220,150 L 140,150 Z" },
-            { id: "tpe-sl", name: "士林區", center: [250, 110], path: "M 230,90 L 300,90 L 280,150 L 220,150 Z" },
-            { id: "tpe-nh", name: "內湖區", center: [320, 150], path: "M 300,90 L 370,110 L 350,180 L 280,150 Z" },
-            { id: "tpe-zs", name: "中山區", center: [200, 180], path: "M 140,150 L 220,150 L 230,210 L 150,210 Z" },
-            { id: "tpe-dt", name: "大同區", center: [145, 195], path: "M 120,170 L 170,170 L 165,220 L 115,220 Z" },
-            { id: "tpe-ss", name: "松山區", center: [250, 180], path: "M 220,150 L 280,150 L 270,210 L 210,210 Z" },
-            { id: "tpe-wh", name: "萬華區", center: [120, 240], path: "M 90,210 L 140,210 L 130,270 L 80,270 Z" },
-            { id: "tpe-cc", name: "中正區", center: [170, 235], path: "M 140,210 L 190,210 L 185,260 L 135,260 Z" },
-            { id: "tpe-da", name: "大安區", center: [220, 235], path: "M 190,210 L 250,210 L 245,260 L 185,260 Z" },
-            { id: "tpe-xy", name: "信義區", center: [270, 235], path: "M 250,210 L 300,210 L 295,260 L 245,260 Z" },
-            { id: "tpe-ng", name: "南港區", center: [330, 220], path: "M 300,210 L 360,210 L 350,270 L 290,270 Z" },
-            { id: "tpe-ws", name: "文山區", center: [250, 310], path: "M 190,260 L 310,260 L 290,360 L 170,360 Z" }
-        ],
-        "新北市": [
-            { id: "ntp-bq", name: "板橋區", center: [220, 180], path: "M 160,150 L 280,150 L 270,210 L 150,210 Z" },
-            { id: "ntp-sc", name: "三重區", center: [275, 125], path: "M 240,90 L 310,90 L 300,160 L 230,160 Z" },
-            { id: "ntp-zh", name: "中和區", center: [215, 255], path: "M 160,210 L 240,210 L 235,300 L 155,300 Z" },
-            { id: "ntp-yh", name: "永和區", center: [275, 235], path: "M 240,210 L 300,210 L 295,260 L 235,260 Z" },
-            { id: "ntp-xz", name: "新莊區", center: [145, 175], path: "M 90,140 L 170,140 L 165,210 L 85,210 Z" },
-            { id: "ntp-xd", name: "新店區", center: [310, 315], path: "M 235,260 L 385,260 L 355,370 L 205,370 Z" },
-            { id: "ntp-sy", name: "汐止區", center: [405, 160], path: "M 350,110 L 460,110 L 440,210 L 330,210 Z" },
-            { id: "ntp-ts", name: "淡水區", center: [180, 75], path: "M 130,50 L 230,50 L 210,100 L 110,100 Z" },
-            { id: "ntp-lk", name: "林口區", center: [75, 115], path: "M 30,80 L 120,80 L 110,150 L 20,150 Z" },
-            { id: "ntp-rf", name: "瑞芳區", center: [495, 125], path: "M 440,90 L 550,90 L 530,160 L 420,160 Z" },
-            { id: "ntp-wl", name: "烏來區", center: [365, 465], path: "M 205,370 L 385,370 L 515,410 L 445,560 L 175,520 Z" }
-        ],
-        "基隆市": [
-            { id: "kee-aj", name: "安樂區", center: [150, 180], path: "M 80,120 L 220,120 L 200,240 L 60,240 Z" },
-            { id: "kee-zs", name: "中山區", center: [240, 120], path: "M 180,60 L 300,60 L 280,180 L 160,180 Z" },
-            { id: "kee-ra", name: "仁愛區", center: [260, 240], path: "M 200,180 L 320,180 L 300,300 L 180,300 Z" },
-            { id: "kee-xy", name: "信義區", center: [380, 220], path: "M 320,160 L 440,160 L 420,280 L 300,280 Z" },
-            { id: "kee-zz", name: "中正區", center: [390, 100], path: "M 320,40 L 460,40 L 440,160 L 300,160 Z" },
-            { id: "kee-qd", name: "七堵區", center: [160, 390], path: "M 80,300 L 240,300 L 210,480 L 50,480 Z" },
-            { id: "kee-nn", name: "暖暖區", center: [330, 380], path: "M 240,300 L 420,300 L 380,460 L 200,460 Z" }
-        ],
-        "桃園市": [
-            { id: "tao-ty", name: "桃園區", center: [280, 180], path: "M 220,150 L 340,150 L 320,210 L 200,210 Z" },
-            { id: "tao-zl", name: "中壢區", center: [210, 255], path: "M 140,210 L 280,210 L 260,300 L 120,300 Z" },
-            { id: "tao-bd", name: "八德區", center: [315, 255], path: "M 280,210 L 350,210 L 340,300 L 270,300 Z" },
-            { id: "tao-pz", name: "平鎮區", center: [205, 335], path: "M 150,300 L 260,300 L 240,370 L 130,370 Z" },
-            { id: "tao-lz", name: "蘆竹區", center: [240, 110], path: "M 180,70 L 300,70 L 280,150 L 160,150 Z" },
-            { id: "tao-ks", name: "龜山區", center: [370, 150], path: "M 320,100 L 420,100 L 400,200 L 300,200 Z" },
-            { id: "tao-ds", name: "大溪區", center: [385, 335], path: "M 310,270 L 460,270 L 430,400 L 280,400 Z" },
-            { id: "tao-lt", name: "龍潭區", center: [265, 415], path: "M 200,370 L 330,370 L 300,460 L 170,460 Z" },
-            { id: "tao-ym", name: "楊梅區", center: [115, 345], path: "M 60,300 L 170,300 L 150,390 L 40,390 Z" },
-            { id: "tao-xy-town", name: "新屋區", center: [65, 255], path: "M 10,210 L 120,210 L 100,300 L 0,300 Z" },
-            { id: "tao-gy", name: "觀音區", center: [85, 150], path: "M 30,100 L 140,100 L 120,200 L 10,200 Z" },
-            { id: "tao-dy", name: "大園區", center: [175, 100], path: "M 120,60 L 230,60 L 210,140 L 100,140 Z" },
-            { id: "tao-fx", name: "復興區", center: [435, 465], path: "M 330,370 L 540,370 L 490,560 L 280,560 Z" }
-        ],
-        "新竹市": [
-            { id: "hcc-e", name: "東區", center: [350, 310], path: "M 250,220 L 450,220 L 410,400 L 210,400 Z" },
-            { id: "hcc-n", name: "北區", center: [180, 210], path: "M 100,130 L 260,130 L 230,290 L 70,290 Z" },
-            { id: "hcc-sy", name: "香山區", center: [160, 410], path: "M 70,290 L 250,290 L 210,530 L 30,530 Z" }
-        ],
-        "新竹縣": [
-            { id: "hch-zb", name: "竹北市", center: [180, 150], path: "M 110,110 L 250,110 L 230,190 L 90,190 Z" },
-            { id: "hch-zd", name: "竹東鎮", center: [340, 275], path: "M 280,220 L 400,220 L 380,330 L 260,330 Z" },
-            { id: "hch-hk", name: "湖口鄉", center: [180, 70], path: "M 120,30 L 240,30 L 220,110 L 100,110 Z" },
-            { id: "hch-xf", name: "新豐鄉", center: [75, 100], path: "M 20,60 L 130,60 L 110,140 L 0,140 Z" },
-            { id: "hch-gx", name: "關西鎮", center: [385, 140], path: "M 310,90 L 460,90 L 430,190 L 280,190 Z" },
-            { id: "hch-xp", name: "新埔鎮", center: [275, 140], path: "M 210,90 L 340,90 L 310,190 L 180,190 Z" },
-            { id: "hch-bs", name: "寶山鄉", center: [215, 315], path: "M 150,260 L 280,260 L 260,370 L 130,370 Z" },
-            { id: "hch-ql", name: "芎林鄉", center: [290, 205], path: "M 230,170 L 350,170 L 330,240 L 210,240 Z" },
-            { id: "hch-hs", name: "橫山鄉", center: [390, 265], path: "M 330,220 L 450,220 L 430,310 L 310,310 Z" },
-            { id: "hch-bp", name: "北埔鄉", center: [285, 380], path: "M 220,330 L 350,330 L 330,430 L 200,430 Z" },
-            { id: "hch-em", name: "峨眉鄉", center: [165, 415], path: "M 100,370 L 230,370 L 210,460 L 80,460 Z" },
-            { id: "hch-js", name: "尖石鄉", center: [515, 385], path: "M 410,220 L 620,220 L 540,550 L 330,550 Z" },
-            { id: "hch-wf", name: "五峰鄉", center: [355, 495], path: "M 250,430 L 460,430 L 410,560 L 200,560 Z" }
-        ],
-        "宜蘭縣": [
-            { id: "ila-il", name: "宜蘭市", center: [295, 145], path: "M 260,120 L 330,120 L 320,170 L 250,170 Z" },
-            { id: "ila-ld", name: "羅東鎮", center: [310, 220], path: "M 280,195 L 340,195 L 330,245 L 270,245 Z" },
-            { id: "ila-sa", name: "蘇澳鎮", center: [385, 290], path: "M 320,245 L 450,245 L 410,340 L 280,340 Z" },
-            { id: "ila-tc", name: "頭城鎮", center: [385, 80], path: "M 320,30 L 450,30 L 410,130 L 280,130 Z" },
-            { id: "ila-jx", name: "礁溪鄉", center: [295, 95], path: "M 240,70 L 350,70 L 330,120 L 220,120 Z" },
-            { id: "ila-zw", name: "壯圍鄉", center: [365, 145], path: "M 330,120 L 400,120 L 390,170 L 320,170 Z" },
-            { id: "ila-ys", name: "員山鄉", center: [195, 175], path: "M 130,130 L 260,130 L 240,220 L 110,220 Z" },
-            { id: "ila-ds", name: "冬山鄉", center: [255, 265], path: "M 200,220 L 310,220 L 290,310 L 180,310 Z" },
-            { id: "ila-wj", name: "五結鄉", center: [365, 205], path: "M 320,170 L 410,170 L 400,240 L 310,240 Z" },
-            { id: "ila-sx", name: "三星鄉", center: [185, 265], path: "M 120,220 L 250,220 L 230,310 L 100,310 Z" },
-            { id: "ila-dt-town", name: "大同鄉", center: [195, 385], path: "M 100,310 L 290,310 L 240,460 L 50,460 Z" },
-            { id: "ila-na", name: "南澳鄉", center: [315, 465], path: "M 210,380 L 420,380 L 370,550 L 160,550 Z" }
-        ]
-    };
-
+<!-- ... existing code ... -->
     let localState = {};
 
     function initAppState() {
@@ -231,206 +54,377 @@
         for (const county in geographicDB) {
             localState[county] = {};
             geographicDB[county].forEach(dist => {
-                localState[county][dist.id] = 0;
+                if (INITIAL_DEFAULTS[county] && INITIAL_DEFAULTS[county][dist.id] !== undefined) {
+                    localState[county][dist.id] = INITIAL_DEFAULTS[county][dist.id];
+                } else {
+                    localState[county][dist.id] = 0;
+                }
             });
         }
     }
 
     function showToast(message, icon = "💾") {
-        const toast = document.getElementById('toast');
-        document.getElementById('toast-icon').innerText = icon;
-        document.getElementById('toast-message').innerText = message;
-        
-        toast.classList.remove('opacity-0', 'translate-y-10', 'pointer-events-none');
-        toast.classList.add('opacity-100', 'translate-y-0');
-        
-        setTimeout(() => {
-            toast.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
-            toast.classList.remove('opacity-100', 'translate-y-0');
-        }, 2500);
-    }
-
-    let onConfirmAction = null;
-    function openConfirmModal(onConfirm) {
-        onConfirmAction = onConfirm;
-        const modal = document.getElementById('confirm-modal');
-        const box = document.getElementById('modal-box');
-        
-        modal.classList.remove('opacity-0', 'pointer-events-none');
-        box.classList.remove('scale-90');
-        box.classList.add('scale-100');
-    }
-
-    function closeConfirmModal() {
-        const modal = document.getElementById('confirm-modal');
-        const box = document.getElementById('modal-box');
-        
-        modal.classList.add('opacity-0', 'pointer-events-none');
-        box.classList.remove('scale-100');
-        box.classList.add('scale-90');
-    }
-
-    document.getElementById('confirm-yes-btn').onclick = () => {
-        if (onConfirmAction) onConfirmAction();
-        closeConfirmModal();
-    };
-
+<!-- ... existing code ... -->
     function triggerSave() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(localState));
         showToast("北部數據已成功儲存！", "✨");
     }
 
-    function triggerReset() {
-        openConfirmModal(() => {
-            localStorage.removeItem(STORAGE_KEY);
-            for (const county in geographicDB) {
-                localState[county] = {};
-                geographicDB[county].forEach(dist => {
-                    localState[county][dist.id] = 0;
-                });
-            }
-            const selected = document.getElementById('county-select').value;
-            renderInputPanel(selected);
-            renderSVGMap(selected);
-            showToast("數據已成功重設！", "🧹");
+    function triggerDownloadHTML() {
+        // 先同步所有數字 input 的值，確保下載後預設填入
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.setAttribute('value', input.value);
         });
-    }
-
-    function calculateGradientColor(val, min, max) {
-        if (max === min || max === 0) return "#f8fafc";
-        const ratio = (val - min) / (max - min);
-        const r = Math.round(241 + (17 - 241) * ratio);
-        const g = Math.round(245 + (148 - 245) * ratio);
-        const b = Math.round(249 + (136 - 249) * ratio);
-        return `rgb(${r}, ${g}, ${b})`;
-    }
-
-    function updateHeatmap(county) {
-        const values = Object.values(localState[county]);
-        const max = Math.max(...values, 0);
-        const min = Math.min(...values, 0);
-
-        geographicDB[county].forEach(dist => {
-            const polygon = document.getElementById(dist.id);
-            if (polygon) {
-                const val = localState[county][dist.id] || 0;
-                polygon.setAttribute('fill', calculateGradientColor(val, min, max));
-            }
-            // 更新地圖上的數值標籤
-            const valLabel = document.getElementById(`val-${dist.id}`);
-            if (valLabel) {
-                const val = localState[county][dist.id] || 0;
-                valLabel.textContent = `$${val.toLocaleString()}`;
-            }
-        });
-    }
-
-    function renderInputPanel(county) {
-        const tbody = document.getElementById('input-table-body');
-        tbody.innerHTML = '';
-
-        const sortedDistricts = [...geographicDB[county]].sort((a, b) => {
-            return (localState[county][b.id] || 0) - (localState[county][a.id] || 0);
-        });
-
-        sortedDistricts.forEach(dist => {
-            const tr = document.createElement('tr');
-            tr.className = "hover:bg-slate-50 transition-colors";
-            
-            const tdName = document.createElement('td');
-            tdName.className = "px-4 py-3 text-sm font-semibold text-slate-700";
-            tdName.innerText = dist.name;
-            
-            const tdInput = document.createElement('td');
-            tdInput.className = "px-4 py-3 text-right";
-            
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.className = 'w-28 bg-slate-50 border border-slate-200 focus:border-teal-500 focus:bg-white text-right px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-800 transition-all outline-none focus:ring-2 focus:ring-teal-500/10';
-            input.value = localState[county][dist.id] || 0;
-            
-            input.oninput = (e) => {
-                localState[county][dist.id] = parseFloat(e.target.value) || 0;
-                updateHeatmap(county);
-            };
-            input.onblur = () => { renderInputPanel(county); };
-            input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); };
-
-            tdInput.appendChild(input);
-            tr.appendChild(tdName);
-            tr.appendChild(tdInput);
-            tbody.appendChild(tr);
-        });
-    }
-
-    function renderSVGMap(county) {
-        const featuresGroup = document.getElementById('map-features-group');
-        const labelsGroup = document.getElementById('map-labels-group');
-        const tooltip = document.getElementById('map-tooltip');
         
-        featuresGroup.innerHTML = '';
-        labelsGroup.innerHTML = '';
-        document.getElementById('map-title').innerText = `${county}真實地理分佈圖`;
-
-        geographicDB[county].forEach(dist => {
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            path.setAttribute('d', dist.path);
-            path.setAttribute('id', dist.id);
-            path.setAttribute('class', 'stroke-white hover:stroke-slate-900 transition-all duration-200 cursor-pointer');
-            path.setAttribute('stroke-width', '2');
-            path.setAttribute('fill', '#f8fafc');
-            
-            path.onmousemove = (e) => {
-                const currentVal = localState[county][dist.id] || 0;
-                tooltip.classList.remove('hidden');
-                tooltip.style.left = (e.offsetX + 15) + 'px';
-                tooltip.style.top = (e.offsetY + 15) + 'px';
-                tooltip.innerHTML = `<div class="font-bold text-slate-300 text-[10px] uppercase tracking-wider">${county}</div>
-                                     <div class="text-sm font-extrabold mt-0.5">${dist.name}</div>
-                                     <div class="text-xs text-teal-400 font-semibold mt-1">金額：$${currentVal.toLocaleString()} 元</div>`;
-            };
-            path.onmouseleave = () => { tooltip.classList.add('hidden'); };
-
-            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            text.setAttribute('x', dist.center[0]);
-            text.setAttribute('y', dist.center[1]);
-            text.setAttribute('class', 'text-[11px] font-extrabold fill-slate-800 pointer-events-none text-center select-none');
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('dominant-baseline', 'middle');
-
-            // 區域名稱子行
-            const tspanName = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-            tspanName.setAttribute('x', dist.center[0]);
-            tspanName.setAttribute('dy', '-5');
-            tspanName.textContent = dist.name;
-
-            // 金額數值子行
-            const tspanVal = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-            tspanVal.setAttribute('x', dist.center[0]);
-            tspanVal.setAttribute('dy', '13');
-            tspanVal.setAttribute('id', `val-${dist.id}`);
-            tspanVal.setAttribute('class', 'fill-slate-500 font-medium text-[9px]');
-            tspanVal.textContent = `$${(localState[county][dist.id] || 0).toLocaleString()}`;
-
-            text.appendChild(tspanName);
-            text.appendChild(tspanVal);
-
-            featuresGroup.appendChild(path);
-            labelsGroup.appendChild(text);
-        });
-
-        updateHeatmap(county);
+        let htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+        
+        const stateString = JSON.stringify(localState, null, 4);
+        const replacement = `/* INITIAL_DEFAULTS_START */\n    const INITIAL_DEFAULTS = ${stateString};\n    /* INITIAL_DEFAULTS_END */`;
+        
+        htmlContent = htmlContent.replace(/\/\* INITIAL_DEFAULTS_START \*\/[\s\S]*?\/\* INITIAL_DEFAULTS_END \*\//, replacement);
+        
+        const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const currentPath = window.location.pathname;
+        const filename = currentPath.substring(currentPath.lastIndexOf('/') + 1) || "taiwan_map_north.html";
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showToast("已產生並下載內置數據的網頁檔案！將此檔上傳至 GitHub 覆蓋即可。", "📥");
     }
 
-    document.getElementById('county-select').onchange = (e) => {
-        const selected = e.target.value;
-        renderInputPanel(selected);
-        renderSVGMap(selected);
-    };
+    function triggerReset() {
+<!-- ... existing code ... -->
+```
+eof
 
-    initAppState();
-    renderInputPanel("臺北市");
-    renderSVGMap("臺北市");
-</script>
-</body>
-</html>
+```html:中部地區地圖:taiwan_map_central.html
+<!-- ... existing code ... -->
+<header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <a href="index.html" class="inline-flex items-center gap-2 text-slate-600 hover:text-indigo-600 transition-colors font-semibold text-sm">
+            <span>⬅</span> 返回首頁導覽
+        </a>
+        <div class="flex items-center gap-3">
+            <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1" onclick="triggerSave()">
+                💾 儲存數據
+            </button>
+            <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1" onclick="triggerDownloadHTML()">
+                📥 匯出數據
+            </button>
+            <button class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1" onclick="triggerReset()">
+                🧹 重設數據
+            </button>
+        </div>
+    </div>
+</header>
+<!-- ... existing code ... -->
+<script>
+    const STORAGE_KEY = "taiwan_allowance_central_data";
+    
+    // 初始化縮放比例 (預設 1.3 倍)
+    let zoomFactor = 1.3;
+
+    /* INITIAL_DEFAULTS_START */
+    const INITIAL_DEFAULTS = {};
+    /* INITIAL_DEFAULTS_END */
+
+    const geographicDB = {
+<!-- ... existing code ... -->
+    let localState = {};
+
+    function initAppState() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                localState = JSON.parse(saved);
+                for (const county in geographicDB) {
+                    if (!localState[county]) localState[county] = {};
+                    geographicDB[county].forEach(dist => {
+                        if (localState[county][dist.id] === undefined) {
+                            localState[county][dist.id] = 0;
+                        }
+                    });
+                }
+                return;
+            } catch (e) {
+                console.error("載入舊有數據失敗，重設中...", e);
+            }
+        }
+
+        for (const county in geographicDB) {
+            localState[county] = {};
+            geographicDB[county].forEach(dist => {
+                if (INITIAL_DEFAULTS[county] && INITIAL_DEFAULTS[county][dist.id] !== undefined) {
+                    localState[county][dist.id] = INITIAL_DEFAULTS[county][dist.id];
+                } else {
+                    localState[county][dist.id] = 0;
+                }
+            });
+        }
+    }
+
+    function showToast(message, icon = "💾") {
+<!-- ... existing code ... -->
+    function triggerSave() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(localState));
+        showToast("中部數據已成功儲存！", "✨");
+    }
+
+    function triggerDownloadHTML() {
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.setAttribute('value', input.value);
+        });
+        
+        let htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+        
+        const stateString = JSON.stringify(localState, null, 4);
+        const replacement = `/* INITIAL_DEFAULTS_START */\n    const INITIAL_DEFAULTS = ${stateString};\n    /* INITIAL_DEFAULTS_END */`;
+        
+        htmlContent = htmlContent.replace(/\/\* INITIAL_DEFAULTS_START \*\/[\s\S]*?\/\* INITIAL_DEFAULTS_END \*\//, replacement);
+        
+        const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const currentPath = window.location.pathname;
+        const filename = currentPath.substring(currentPath.lastIndexOf('/') + 1) || "taiwan_map_central.html";
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showToast("已產生並下載內置數據的網頁檔案！將此檔上傳至 GitHub 覆蓋即可。", "📥");
+    }
+
+    function triggerReset() {
+<!-- ... existing code ... -->
+```
+eof
+
+```html:南部及東部地區地圖:taiwan_map_south_east.html
+<!-- ... existing code ... -->
+<header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <a href="index.html" class="inline-flex items-center gap-2 text-slate-600 hover:text-indigo-600 transition-colors font-semibold text-sm">
+            <span>⬅</span> 返回首頁導覽
+        </a>
+        <div class="flex items-center gap-3">
+            <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1" onclick="triggerSave()">
+                💾 儲存數據
+            </button>
+            <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1" onclick="triggerDownloadHTML()">
+                📥 匯出數據
+            </button>
+            <button class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1" onclick="triggerReset()">
+                🧹 重設數據
+            </button>
+        </div>
+    </div>
+</header>
+<!-- ... existing code ... -->
+<script>
+    const STORAGE_KEY = "taiwan_allowance_south_east_data";
+    
+    // 初始化縮放比例 (預設 1.3 倍)
+    let zoomFactor = 1.3;
+
+    /* INITIAL_DEFAULTS_START */
+    const INITIAL_DEFAULTS = {};
+    /* INITIAL_DEFAULTS_END */
+
+    const geographicDB = {
+<!-- ... existing code ... -->
+    let localState = {};
+
+    function initAppState() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                localState = JSON.parse(saved);
+                for (const county in geographicDB) {
+                    if (!localState[county]) localState[county] = {};
+                    geographicDB[county].forEach(dist => {
+                        if (localState[county][dist.id] === undefined) {
+                            localState[county][dist.id] = 0;
+                        }
+                    });
+                }
+                return;
+            } catch (e) {
+                console.error("載入舊有數據失敗，重設中...", e);
+            }
+        }
+
+        for (const county in geographicDB) {
+            localState[county] = {};
+            geographicDB[county].forEach(dist => {
+                if (INITIAL_DEFAULTS[county] && INITIAL_DEFAULTS[county][dist.id] !== undefined) {
+                    localState[county][dist.id] = INITIAL_DEFAULTS[county][dist.id];
+                } else {
+                    localState[county][dist.id] = 0;
+                }
+            });
+        }
+    }
+
+    function showToast(message, icon = "💾") {
+<!-- ... existing code ... -->
+    function triggerSave() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(localState));
+        showToast("南部東部數據已成功儲存！", "✨");
+    }
+
+    function triggerDownloadHTML() {
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.setAttribute('value', input.value);
+        });
+        
+        let htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+        
+        const stateString = JSON.stringify(localState, null, 4);
+        const replacement = `/* INITIAL_DEFAULTS_START */\n    const INITIAL_DEFAULTS = ${stateString};\n    /* INITIAL_DEFAULTS_END */`;
+        
+        htmlContent = htmlContent.replace(/\/\* INITIAL_DEFAULTS_START \*\/[\s\S]*?\/\* INITIAL_DEFAULTS_END \*\//, replacement);
+        
+        const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const currentPath = window.location.pathname;
+        const filename = currentPath.substring(currentPath.lastIndexOf('/') + 1) || "taiwan_map_south_east.html";
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showToast("已產生並下載內置數據的網頁檔案！將此檔上傳至 GitHub 覆蓋即可。", "📥");
+    }
+
+    function triggerReset() {
+<!-- ... existing code ... -->
+```
+eof
+
+```html:外島地區地圖:taiwan_map_islands.html
+<!-- ... existing code ... -->
+<header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <a href="index.html" class="inline-flex items-center gap-2 text-slate-600 hover:text-indigo-600 transition-colors font-semibold text-sm">
+            <span>⬅</span> 返回首頁導覽
+        </a>
+        <div class="flex items-center gap-3">
+            <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1" onclick="triggerSave()">
+                💾 儲存數據
+            </button>
+            <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1" onclick="triggerDownloadHTML()">
+                📥 匯出數據
+            </button>
+            <button class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1" onclick="triggerReset()">
+                🧹 重設數據
+            </button>
+        </div>
+    </div>
+</header>
+<!-- ... existing code ... -->
+<script>
+    const STORAGE_KEY = "taiwan_allowance_islands_data";
+    
+    // 初始化縮放比例 (預設 1.3 倍)
+    let zoomFactor = 1.3;
+
+    /* INITIAL_DEFAULTS_START */
+    const INITIAL_DEFAULTS = {};
+    /* INITIAL_DEFAULTS_END */
+
+    const geographicDB = {
+<!-- ... existing code ... -->
+    let localState = {};
+
+    function initAppState() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                localState = JSON.parse(saved);
+                for (const county in geographicDB) {
+                    if (!localState[county]) localState[county] = {};
+                    geographicDB[county].forEach(dist => {
+                        if (localState[county][dist.id] === undefined) {
+                            localState[county][dist.id] = 0;
+                        }
+                    });
+                }
+                return;
+            } catch (e) {
+                console.error("載入外島舊有數據失敗，將重新初始化", e);
+            }
+        }
+
+        for (const county in geographicDB) {
+            localState[county] = {};
+            geographicDB[county].forEach(dist => {
+                if (INITIAL_DEFAULTS[county] && INITIAL_DEFAULTS[county][dist.id] !== undefined) {
+                    localState[county][dist.id] = INITIAL_DEFAULTS[county][dist.id];
+                } else {
+                    localState[county][dist.id] = 0;
+                }
+            });
+        }
+    }
+
+    function showToast(message, icon = "💾") {
+<!-- ... existing code ... -->
+    function triggerSave() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(localState));
+        showToast("外島數據已成功儲存！", "✨");
+    }
+
+    function triggerDownloadHTML() {
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.setAttribute('value', input.value);
+        });
+        
+        let htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+        
+        const stateString = JSON.stringify(localState, null, 4);
+        const replacement = `/* INITIAL_DEFAULTS_START */\n    const INITIAL_DEFAULTS = ${stateString};\n    /* INITIAL_DEFAULTS_END */`;
+        
+        htmlContent = htmlContent.replace(/\/\* INITIAL_DEFAULTS_START \*\/[\s\S]*?\/\* INITIAL_DEFAULTS_END \*\//, replacement);
+        
+        const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const currentPath = window.location.pathname;
+        const filename = currentPath.substring(currentPath.lastIndexOf('/') + 1) || "taiwan_map_islands.html";
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showToast("已產生並下載內置數據的網頁檔案！將此檔上傳至 GitHub 覆蓋即可。", "📥");
+    }
+
+    function triggerReset() {
+<!-- ... existing code ... -->
+```
+eof
+
+---
+
+### 💡 總結說明
+
+我已經為您的四個區域地圖檔案都注入了這個強大且簡單的 **「熱烘培下載系統」**：
+1. 更新完成後，請先在您自己的電腦上雙擊打開 HTML 網頁。
+2. 將所有金額填寫完畢。
+3. 點選頂部的綠色 **「📥 下載此頁 (內置數據)」** 按鈕。
+4. 網頁會自動為您下載一份已經「寫死並包裝好您當前設定數據」的同名 HTML 檔案。
+5. 將下載下來的檔案**上傳覆蓋 GitHub 倉庫**，大家再點進網址，就能直接共享您預設填好的資料，同時各自依舊能自由操作！
