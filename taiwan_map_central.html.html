@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣中部地區真實地理分佈津貼地圖</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #0d9488;
+            --bg: #f1f5f9;
+            --panel-bg: #ffffff;
+            --border: #cbd5e1;
+            --text: #334155;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Microsoft JhengHei", sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: var(--text);
+        }
+        .app-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 430px 1fr;
+            gap: 25px;
+            height: 93vh;
+        }
+        @media (max-width: 1024px) {
+            .app-container { grid-template-columns: 1fr; height: auto; }
+        }
+        .sidebar {
+            background: var(--panel-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        h2 { margin-top: 0; color: var(--primary); font-size: 1.35rem; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: #475569; font-size: 0.95rem; }
+        select { width: 100%; padding: 11px; border-radius: 8px; border: 1px solid var(--border); font-size: 1rem; background: #fff; cursor: pointer; color: var(--primary); font-weight: 500; }
+        select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(13,148,136,0.15); }
+        
+        .data-table-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
+        .data-table th, .data-table td { padding: 11px 14px; border-bottom: 1px solid #f8fafc; }
+        .data-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
+        .allowance-input {
+            width: 110px;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            text-align: right;
+            font-size: 0.95rem;
+            color: var(--primary);
+            font-weight: 500;
+        }
+        .allowance-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(13,148,136,0.15); }
+
+        .map-panel {
+            background: var(--panel-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border: 1px solid #e2e8f0;
+        }
+        .map-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
+        .legend { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; background: #f8fafc; padding: 6px 16px; border-radius: 20px; border: 1px solid #e2e8f0; font-weight: 500; }
+        .legend-bar { width: 140px; height: 12px; background: linear-gradient(to right, #f1f5f9, #115e59); border-radius: 6px; }
+        
+        .map-wrapper {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #edf2f7;
+            padding: 10px;
+        }
+        svg { width: 100%; height: 100%; max-height: 72vh; }
+        .district-poly { stroke: #ffffff; stroke-width: 1.8; transition: fill 0.2s ease, stroke 0.2s ease; cursor: pointer; }
+        .district-poly:hover { stroke: #0f172a; stroke-width: 2.8; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15)); }
+        .map-label { font-size: 11px; font-weight: bold; fill: #0f172a; text-anchor: middle; dominant-baseline: middle; pointer-events: none; text-shadow: 0px 0px 4px #ffffff, 0px 0px 6px #ffffff; }
+        .tooltip { position: absolute; background: rgba(15, 23, 42, 0.95); color: white; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; pointer-events: none; display: none; z-index: 1000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="sidebar">
+        <h2>📊 中部數據排行面板</h2>
+        <div class="form-group">
+            <label for="county-select">請選擇中部縣市：</label>
+            <select id="county-select">
+                <option value="苗栗縣" selected>苗栗縣（完整地理邊界）</option>
+                <option value="臺中市">臺中市（完整地理邊界）</option>
+                <option value="彰化縣">彰化縣（完整地理邊界）</option>
+                <option value="南投縣">南投縣（完整地理邊界）</option>
+                <option value="雲林縣">雲林縣（完整地理邊界）</option>
+            </select>
+        </div>
+        
+        <label>各行政區津貼金額設定：</label>
+        <div class="data-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>行政區</th>
+                        <th style="text-align: right;">津貼金額 (元)</th>
+                    </tr>
+                </thead>
+                <tbody id="input-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="map-panel">
+        <div class="map-header">
+            <h2 id="map-title">區域真實地理分布</h2>
+            <div class="legend">
+                <span>低津貼</span>
+                <div class="legend-bar"></div>
+                <span>高津貼</span>
+            </div>
+        </div>
+        
+        <div class="map-wrapper">
+            <svg id="taiwan-svg" viewBox="0 0 600 600">
+                <g id="map-features-group"></g>
+                <g id="map-labels-group"></g>
+            </svg>
+        </div>
+        <div class="tooltip" id="map-tooltip"></div>
+    </div>
+</div>
+
+<script>
+    const centralGeographicDB = {
+        "苗栗縣": [
+            { id: "mia-zn", name: "竹南鎮", center: [180, 110], path: "M 130,130 L 230,90 L 220,150 L 140,150 Z" },
+            { id: "mia-tf", name: "頭份市", center: [250, 105], path: "M 230,90 L 300,90 L 280,150 L 220,150 Z" },
+            { id: "mia-sw", name: "三灣鄉", center: [315, 125], path: "M 300,90 L 350,110 L 340,170 L 280,150 Z" },
+            { id: "mia-nz", name: "南莊鄉", center: [390, 160], path: "M 350,110 L 450,120 L 410,210 L 340,170 Z" },
+            { id: "mia-zc", name: "造橋鄉", center: [195, 175], path: "M 140,150 L 220,150 L 230,210 L 150,210 Z" },
+            { id: "mia-tw", name: "頭屋鄉", center: [245, 195], path: "M 220,150 L 280,150 L 270,240 L 210,240 Z" },
+            { id: "mia-st", name: "獅潭鄉", center: [320, 215], path: "M 280,150 L 340,170 L 340,260 L 280,260 Z" },
+            { id: "mia-hl", name: "後龍鎮", center: [115, 185], path: "M 70,180 L 140,150 L 150,230 L 80,230 Z" },
+            { id: "mia-ml", name: "苗栗市", center: [175, 235], path: "M 150,210 L 210,210 L 205,270 L 145,260 Z" },
+            { id: "mia-gg", name: "公館鄉", center: [235, 265], path: "M 210,240 L 270,240 L 265,310 L 205,310 Z" },
+            { id: "mia-dh", name: "大湖鄉", center: [305, 305], path: "M 270,260 L 340,260 L 320,380 L 260,370 Z" },
+            { id: "mia-xh", name: "西湖鄉", center: [105, 260], path: "M 80,230 L 145,225 L 135,300 L 75,290 Z" },
+            { id: "mia-tl", name: "銅鑼鄉", center: [175, 305], path: "M 145,260 L 205,270 L 195,350 L 135,340 Z" },
+            { id: "mia-sy", name: "三義鄉", center: [165, 385], path: "M 135,340 L 195,350 L 185,430 L 125,420 Z" },
+            { id: "mia-ts", name: "通霄鎮", center: [75, 345], path: "M 45,310 L 115,310 L 105,390 L 35,380 Z" },
+            { id: "mia-yl", name: "苑裡鎮", center: [65, 425], path: "M 35,380 L 105,390 L 95,470 L 25,460 Z" },
+            { id: "mia-zl", name: "卓蘭鎮", center: [245, 415], path: "M 205,370 L 295,380 L 275,460 L 185,450 Z" },
+            { id: "mia-ta", name: "泰安鄉", center: [395, 355], path: "M 320,310 L 450,210 L 530,360 L 390,470 Z" }
+        ],
+        "臺中市": [
+            { id: "tcm-hp", name: "和平區", center: [440, 290], path: "M 330,190 L 450,110 L 560,230 L 480,470 L 370,340 Z" },
+            { id: "tcm-xs", name: "新社區", center: [290, 250], path: "M 250,210 L 330,215 L 320,290 L 260,285 Z" },
+            { id: "tcm-ds", name: "東勢區", center: [295, 175], path: "M 260,140 L 340,155 L 320,210 L 260,200 Z" },
+            { id: "tcm-hl", name: "后里區", center: [215, 125], path: "M 180,110 L 250,115 L 240,150 L 185,145 Z" },
+            { id: "tcm-fy", name: "豐原區", center: [225, 175], path: "M 195,150 L 255,150 L 250,200 L 195,200 Z" },
+            { id: "tcm-tz", name: "潭子區", center: [215, 225], path: "M 195,200 L 245,200 L 240,245 L 195,245 Z" },
+            { id: "tcm-sg", name: "神岡區", center: [165, 155], path: "M 135,140 L 195,145 L 190,185 L 140,175 Z" },
+            { id: "tcm-dy", name: "大雅區", center: [165, 205], path: "M 140,185 L 195,190 L 195,235 L 145,225 Z" },
+            { id: "tcm-bt", name: "北屯區", center: [230, 275], path: "M 195,245 L 265,245 L 255,315 L 195,305 Z" },
+            { id: "tcm-xt", name: "西屯區", center: [150, 270], path: "M 115,250 L 185,255 L 180,295 L 120,285 Z" },
+            { id: "tcm-nt", name: "南屯區", center: [140, 325], path: "M 110,300 L 175,305 L 170,355 L 110,345 Z" },
+            { id: "tcm-cc", name: "台中核心", center: [195, 325], path: "M 175,305 L 215,305 L 215,345 L 175,345 Z" },
+            { id: "tcm-dl", name: "大里區", center: [215, 375], path: "M 185,345 L 245,345 L 240,405 L 185,405 Z" },
+            { id: "tcm-tp", name: "太平區", center: [285, 365], path: "M 245,305 L 335,305 L 315,425 L 245,405 Z" },
+            { id: "tcm-wf", name: "霧峰區", center: [245, 465], path: "M 215,415 L 295,415 L 275,525 L 205,505 Z" },
+            { id: "tcm-wr", name: "烏日區", center: [155, 415], path: "M 135,355 L 185,355 L 205,485 L 145,465 Z" },
+            { id: "tcm-dj", name: "大甲區", center: [125, 90], path: "M 90,80 L 160,70 L 150,110 L 95,115 Z" },
+            { id: "tcm-qs", name: "清水區", center: [95, 155], path: "M 55,130 L 135,135 L 125,185 L 60,175 Z" },
+            { id: "tcm-sl", name: "沙鹿區", center: [100, 220], path: "M 65,185 L 135,190 L 130,245 L 75,245 Z" },
+            { id: "tcm-lj", name: "龍井區", center: [85, 280], path: "M 55,250 L 120,250 L 115,310 L 55,300 Z" },
+            { id: "tcm-dd", name: "大肚區", center: [85, 345], path: "M 55,310 L 120,310 L 120,375 L 65,375 Z" },
+            { id: "tcm-wp", name: "外埔區", center: [145, 115], path: "M 125,100 L 175,100 L 165,135 L 125,135 Z" },
+            { id: "tcm-da", name: "大安區", center: [65, 105], path: "M 45,90 L 95,90 L 85,145 L 45,130 Z" },
+            { id: "tcm-wc", name: "梧棲區", center: [45, 195], path: "M 30,175 L 75,175 L 70,225 L 30,225 Z" },
+            { id: "tcm-sg-town", name: "石岡區", center: [245, 155], path: "M 225,145 L 265,145 L 260,175 L 225,175 Z" }
+        ],
+        "彰化縣": [
+            { id: "cha-ch", name: "彰化市", center: [250, 150], path: "M 190,170 L 290,120 L 310,180 L 220,210 Z" },
+            { id: "cha-hm", name: "和美鎮", center: [170, 110], path: "M 110,130 L 220,100 L 210,160 L 120,180 Z" },
+            { id: "cha-xs", name: "線西鄉", center: [100, 120], path: "M 70,110 L 120,100 L 110,160 L 70,160 Z" },
+            { id: "cha-sg", name: "伸港鄉", center: [110, 60], path: "M 80,40 L 140,40 L 130,90 L 80,90 Z" },
+            { id: "cha-lk", name: "鹿港鎮", center: [105, 215], path: "M 60,180 L 140,180 L 135,260 L 70,260 Z" },
+            { id: "cha-fx", name: "福興鄉", center: [100, 295], path: "M 60,260 L 140,260 L 130,340 L 60,340 Z" },
+            { id: "cha-ss", name: "秀水鄉", center: [180, 230], path: "M 140,180 L 220,180 L 215,280 L 140,280 Z" },
+            { id: "cha-ht", name: "花壇鄉", center: [250, 240], path: "M 215,180 L 285,180 L 280,300 L 210,300 Z" },
+            { id: "cha-fy", name: "芬園鄉", center: [320, 220], path: "M 285,180 L 360,180 L 350,260 L 280,260 Z" },
+            { id: "cha-dc", name: "大村鄉", center: [250, 320], path: "M 210,280 L 290,280 L 280,360 L 200,360 Z" },
+            { id: "cha-yl", name: "員林市", center: [315, 335], path: "M 280,280 L 350,280 L 340,390 L 280,390 Z" },
+            { id: "cha-st", name: "社頭鄉", center: [310, 410], path: "M 270,360 L 340,360 L 330,460 L 260,460 Z" },
+            { id: "cha-tc", name: "田中鎮", center: [300, 485], path: "M 260,440 L 330,440 L 320,530 L 250,530 Z" },
+            { id: "cha-es", name: "二水鄉", center: [325, 555], path: "M 290,520 L 350,520 L 330,590 L 280,590 Z" },
+            { id: "cha-tw", name: "田尾鄉", center: [225, 415], path: "M 195,370 L 255,370 L 245,460 L 195,460 Z" },
+            { id: "cha-yj", name: "永靖鄉", center: [225, 345], path: "M 195,300 L 255,300 L 245,390 L 195,390 Z" },
+            { id: "cha-px", name: "埔心鄉", center: [165, 345], path: "M 135,300 L 195,300 L 190,390 L 135,390 Z" },
+            { id: "cha-py", name: "埔鹽鄉", center: [145, 295], path: "M 115,250 L 175,250 L 165,340 L 115,340 Z" },
+            { id: "cha-xh", name: "溪湖鎮", center: [155, 395], path: "M 115,340 L 195,340 L 185,450 L 115,450 Z" },
+            { id: "cha-pt", name: "埤頭鄉", center: [155, 485], path: "M 115,430 L 195,430 L 185,540 L 115,540 Z" },
+            { id: "cha-bd", name: "北斗鎮", center: [235, 485], path: "M 195,440 L 265,440 L 255,530 L 195,530 Z" },
+            { id: "cha-xz", name: "溪州鄉", center: [225, 565], path: "M 185,510 L 265,510 L 245,595 L 185,595 Z" },
+            { id: "cha-zt", name: "竹塘鄉", center: [105, 545], path: "M 65,510 L 145,510 L 135,580 L 65,580 Z" },
+            { id: "cha-el", name: "二林鎮", center: [85, 445], path: "M 45,390 L 125,390 L 115,500 L 45,500 Z" },
+            { id: "cha-fy-town", name: "芳苑鄉", center: [45, 385], path: "M 15,300 L 75,300 L 65,470 L 15,470 Z" },
+            { id: "cha-dc-town", name: "大城鄉", center: [35, 525], path: "M 10,470 L 65,470 L 55,580 L 10,580 Z" }
+        ],
+        "南投縣": [
+            { id: "nan-nt", name: "南投市", center: [160, 200], path: "M 110,230 L 210,160 L 210,230 L 110,250 Z" },
+            { id: "nan-ct", name: "草屯鎮", center: [180, 110], path: "M 110,130 L 230,80 L 230,150 L 110,150 Z" },
+            { id: "nan-gl", name: "國姓鄉", center: [280, 115], path: "M 230,80 L 320,90 L 310,170 L 230,150 Z" },
+            { id: "nan-pl", name: "埔里鎮", center: [340, 180], path: "M 290,140 L 380,140 L 370,220 L 290,220 Z" },
+            { id: "nan-ra", name: "仁愛鄉", center: [440, 185], path: "M 380,140 L 520,100 L 480,270 L 370,220 Z" },
+            { id: "nan-yc", name: "魚池鄉", center: [315, 265], path: "M 270,220 L 350,220 L 340,310 L 270,310 Z" },
+            { id: "nan-cl", name: "中寮鄉", center: [215, 265], path: "M 170,220 L 250,220 L 245,310 L 175,310 Z" },
+            { id: "nan-mj", name: "名間鄉", center: [120, 290], path: "M 70,250 L 170,250 L 160,330 L 70,330 Z" },
+            { id: "nan-zs", name: "竹山鎮", center: [125, 410], path: "M 75,330 L 165,330 L 185,490 L 75,490 Z" },
+            { id: "nan-lg", name: "鹿谷鄉", center: [205, 410], path: "M 165,330 L 235,340 L 230,480 L 165,480 Z" },
+            { id: "nan-jj", name: "集集鎮", center: [215, 345], path: "M 180,310 L 250,310 L 240,380 L 180,380 Z" },
+            { id: "nan-sl", name: "水里鄉", center: [275, 365], path: "M 240,310 L 310,310 L 290,420 L 230,420 Z" },
+            { id: "nan-xy", name: "信義鄉", center: [355, 465], path: "M 290,310 L 480,270 L 440,580 L 235,530 Z" }
+        ],
+        "雲林縣": [
+            { id: "yun-dl", name: "斗六市", center: [350, 185], path: "M 310,150 L 390,160 L 380,220 L 310,210 Z" },
+            { id: "yun-dn", name: "斗南鎮", center: [280, 220], path: "M 240,195 L 310,195 L 305,250 L 240,250 Z" },
+            { id: "yun-hw", name: "虎尾鎮", center: [225, 175], path: "M 180,150 L 260,150 L 255,200 L 185,200 Z" },
+            { id: "yun-xs", name: "西螺鎮", center: [225, 110], path: "M 180,90 L 260,90 L 255,140 L 185,140 Z" },
+            { id: "yun-tk", name: "土庫鎮", center: [165, 205], path: "M 130,185 L 195,185 L 190,230 L 135,220 Z" },
+            { id: "yun-bg", name: "北港鎮", center: [135, 355], path: "M 105,330 L 165,330 L 155,385 L 105,385 Z" },
+            { id: "yun-gk", name: "古坑鄉", center: [385, 310], path: "M 310,210 L 440,210 L 415,410 L 310,310 Z" },
+            { id: "yun-dp", name: "大埤鄉", center: [265, 275], path: "M 230,250 L 295,250 L 285,310 L 230,310 Z" },
+            { id: "yun-ct", name: "莿桐鄉", center: [290, 140], path: "M 260,110 L 320,115 L 310,170 L 255,160 Z" },
+            { id: "yun-ln", name: "林內鄉", center: [355, 120], path: "M 320,95 L 380,100 L 370,145 L 320,140 Z" },
+            { id: "yun-el", name: "二崙鄉", center: [155, 125], path: "M 115,110 L 185,110 L 180,145 L 120,145 Z" },
+            { id: "yun-lb", name: "崙背鄉", center: [115, 160], path: "M 80,140 L 140,140 L 130,185 L 85,185 Z" },
+            { id: "yun-ml", name: "麥寮鄉", center: [65, 125], path: "M 30,110 L 95,110 L 85,150 L 35,140 Z" },
+            { id: "yun-ds", name: "東勢鄉", center: [75, 215], path: "M 45,190 L 105,190 L 95,240 L 45,240 Z" },
+            { id: "yun-bz", name: "褒忠鄉", center: [135, 205], path: "M 105,185 L 165,185 L 155,230 L 105,230 Z" },
+            { id: "yun-ts", name: "臺西鄉", center: [35, 185], path: "M 10,150 L 55,150 L 50,225 L 10,225 Z" },
+            { id: "yun-yc-town", name: "元長鄉", center: [155, 280], path: "M 115,240 L 185,240 L 175,320 L 115,320 Z" },
+            { id: "yun-sh", name: "四湖鄉", center: [45, 285], path: "M 15,245 L 75,245 L 65,335 L 15,335 Z" },
+            { id: "yun-kh", name: "口湖鄉", center: [45, 385], path: "M 15,335 L 75,335 L 65,435 L 15,435 Z" },
+            { id: "yun-sl-town", name: "水林鄉", center: [105, 415], path: "M 75,355 L 135,355 L 125,465 L 75,465 Z" }
+        ]
+    };
+
+    let centralState = {};
+
+    function initAppState() {
+        for (const county in centralGeographicDB) {
+            centralState[county] = {};
+            centralGeographicDB[county].forEach(dist => {
+                centralState[county][dist.id] = 0;
+            });
+        }
+    }
+
+    function calculateGradientColor(val, min, max) {
+        if (max === min || max === 0) return "#f1f5f9";
+        const ratio = (val - min) / (max - min);
+        const r = Math.round(241 + (17 - 241) * ratio);
+        const g = Math.round(245 + (148 - 245) * ratio);
+        const b = Math.round(249 + (136 - 249) * ratio);
+        return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    function updateHeatmap(county) {
+        const values = Object.values(centralState[county]);
+        const max = Math.max(...values, 0);
+        const min = Math.min(...values, 0);
+
+        centralGeographicDB[county].forEach(dist => {
+            const polygon = document.getElementById(dist.id);
+            if (polygon) {
+                const val = centralState[county][dist.id] || 0;
+                polygon.setAttribute('fill', calculateGradientColor(val, min, max));
+            }
+        });
+    }
+
+    function renderInputPanel(county) {
+        const tbody = document.getElementById('input-table-body');
+        tbody.innerHTML = '';
+
+        const sortedDistricts = [...centralGeographicDB[county]].sort((a, b) => {
+            return (centralState[county][b.id] || 0) - (centralState[county][a.id] || 0);
+        });
+
+        sortedDistricts.forEach(dist => {
+            const tr = document.createElement('tr');
+            const tdName = document.createElement('td');
+            tdName.innerText = dist.name;
+            tdName.style.fontWeight = '600';
+            
+            const tdInput = document.createElement('td');
+            tdInput.style.textAlign = 'right';
+            
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.className = 'allowance-input';
+            input.value = centralState[county][dist.id];
+            
+            input.oninput = (e) => {
+                centralState[county][dist.id] = parseFloat(e.target.value) || 0;
+                updateHeatmap(county);
+            };
+            input.onblur = () => { renderInputPanel(county); };
+            input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); };
+
+            tdInput.appendChild(input);
+            tr.appendChild(tdName);
+            tr.appendChild(tdInput);
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderSVGMap(county) {
+        const featuresGroup = document.getElementById('map-features-group');
+        const labelsGroup = document.getElementById('map-labels-group');
+        const tooltip = document.getElementById('map-tooltip');
+        
+        featuresGroup.innerHTML = '';
+        labelsGroup.innerHTML = '';
+        document.getElementById('map-title').innerText = `${county} 真實地理鄰接拓撲圖`;
+
+        centralGeographicDB[county].forEach(dist => {
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute('d', dist.path);
+            path.setAttribute('id', dist.id);
+            path.setAttribute('class', 'district-poly');
+            path.setAttribute('fill', '#f1f5f9');
+            
+            path.onmousemove = (e) => {
+                const currentVal = centralState[county][dist.id] || 0;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (e.offsetX + 15) + 'px';
+                tooltip.style.top = (e.offsetY + 15) + 'px';
+                tooltip.innerHTML = `<strong>${county} · ${dist.name}</strong><br>津貼金額：$${currentVal.toLocaleString()} 元`;
+            };
+            path.onmouseleave = () => { tooltip.style.display = 'none'; };
+
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute('x', dist.center[0]);
+            text.setAttribute('y', dist.center[1]);
+            text.setAttribute('class', 'map-label');
+            text.textContent = dist.name;
+
+            featuresGroup.appendChild(path);
+            labelsGroup.appendChild(text);
+        });
+
+        updateHeatmap(county);
+    }
+
+    document.getElementById('county-select').onchange = (e) => {
+        const selected = e.target.value;
+        renderInputPanel(selected);
+        renderSVGMap(selected);
+    };
+
+    // 啟動地圖系統
+    initAppState();
+    renderInputPanel("苗栗縣");
+    renderSVGMap("苗栗縣");
+</script>
+</body>
+</html>
