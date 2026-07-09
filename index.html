@@ -34,7 +34,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <!-- 標題/返回首頁 -->
         <button onclick="navigateTo('home')" class="inline-flex items-center gap-2 text-slate-700 hover:text-indigo-600 transition-colors font-bold text-lg">
-            <span>🗺️</span> SP智取店派遣津貼數據分佈動態地圖系統
+            <span>🗺️</span> 台灣津貼數據分佈動態地圖系統
         </button>
         <!-- 右側操作選單 (僅在地圖視圖顯示) -->
         <div id="editor-actions" class="hidden flex items-center gap-3">
@@ -42,7 +42,7 @@
                 💾 儲存數據
             </button>
             <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1.5" onclick="triggerDownloadHTML()">
-                📥 匯出數據
+                📥 下載全站 (內置數據)
             </button>
             <button class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1.5" onclick="triggerReset()">
                 🧹 重設數據
@@ -72,7 +72,7 @@
                 🏛️
             </div>
             <h3 class="text-lg font-bold text-slate-950 mb-2 group-hover:text-indigo-600 transition-colors">北部地區地圖</h3>
-            <p class="text-slate-500 text-sm leading-relaxed mb-4">包含：臺北市（修正北投區形狀）、新北市、桃園市、基隆市、新竹市、新竹縣、宜蘭縣。</p>
+            <p class="text-slate-500 text-sm leading-relaxed mb-4">包含：臺北市、新北市、桃園市、基隆市、新竹市、新竹縣、宜蘭縣。</p>
             <span class="text-xs font-semibold text-indigo-600 flex items-center">
                 進入區域編輯 <span class="ml-1 group-hover:translate-x-1 transition-transform">→</span>
             </span>
@@ -84,7 +84,7 @@
                 🪵
             </div>
             <h3 class="text-lg font-bold text-slate-950 mb-2 group-hover:text-indigo-600 transition-colors">中部地區地圖</h3>
-            <p class="text-slate-500 text-sm leading-relaxed mb-4">包含：苗栗縣、臺中市、彰化縣、南投縣、雲林縣等行政區完整地理拓撲圖。</p>
+            <p class="text-slate-500 text-sm leading-relaxed mb-4">包含：苗栗縣、臺中市、彰化縣、南投縣、雲林縣。</p>
             <span class="text-xs font-semibold text-indigo-600 flex items-center">
                 進入區域編輯 <span class="ml-1 group-hover:translate-x-1 transition-transform">→</span>
             </span>
@@ -108,7 +108,7 @@
                 🏝️
             </div>
             <h3 class="text-lg font-bold text-slate-950 mb-2 group-hover:text-indigo-600 transition-colors">外島地區地圖</h3>
-            <p class="text-slate-500 text-sm leading-relaxed mb-4">包含：澎湖縣（精細邊界島嶼）、金門縣、連江縣等離島完整拓撲圖。</p>
+            <p class="text-slate-500 text-sm leading-relaxed mb-4">包含：澎湖縣（精細邊界島嶼）、金門縣、連江縣。</p>
             <span class="text-xs font-semibold text-indigo-600 flex items-center">
                 進入區域編輯 <span class="ml-1 group-hover:translate-x-1 transition-transform">→</span>
             </span>
@@ -116,6 +116,24 @@
     </div>
 
     <!-- 首頁說明底牌 -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center">
+            <span class="mr-2">💡</span> 
+        </h3>
+        <p class="text-slate-600 text-sm sm:text-base leading-relaxed mb-4">
+        </p>
+        <ul class="space-y-3 text-slate-600 text-sm sm:text-base">
+            <li class="flex items-start">
+                <span class="text-indigo-600 font-bold mr-2">✓</span>
+                <span><strong></strong></span>
+            </li>
+            <li class="flex items-start">
+                <span class="text-indigo-600 font-bold mr-2">✓</span>
+                <span><strong></strong> </span>
+            </li>
+            <li class="flex items-start">
+                <span class="text-indigo-600 font-bold mr-2">✓</span>
+                <span><strong></strong></span>
             </li>
         </ul>
     </div>
@@ -189,7 +207,7 @@
 
 <!-- 系統底部 -->
 <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 mt-6">
-    <div>© 2026 台灣地理分佈動態熱圖系統 · 整合型 SPA 版本</div>
+    <div>© 2026 SP智取店派遣津貼台灣地理分佈</div>
 </footer>
 
 <!-- Toast 提示框 -->
