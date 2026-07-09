@@ -4,155 +4,121 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>台灣中部地區真實地理分佈津貼地圖</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #0f172a;
-            --accent: #0d9488;
-            --bg: #f1f5f9;
-            --panel-bg: #ffffff;
-            --border: #cbd5e1;
-            --text: #334155;
-        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Microsoft JhengHei", sans-serif;
-            background-color: var(--bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
             margin: 0;
-            padding: 20px;
-            color: var(--text);
         }
-        .app-container {
-            max-width: 1600px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 430px 1fr;
-            gap: 25px;
-            height: 93vh;
+        input[type=number] {
+            -moz-appearance: textfield;
         }
-        @media (max-width: 1024px) {
-            .app-container { grid-template-columns: 1fr; height: auto; }
-        }
-        .sidebar {
-            background: var(--panel-bg);
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            border: 1px solid #e2e8f0;
-        }
-        h2 { margin-top: 0; color: var(--primary); font-size: 1.35rem; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
-        .form-group { margin-bottom: 18px; }
-        label { display: block; font-weight: 600; margin-bottom: 8px; color: #475569; font-size: 0.95rem; }
-        select { width: 100%; padding: 11px; border-radius: 8px; border: 1px solid var(--border); font-size: 1rem; background: #fff; cursor: pointer; color: var(--primary); font-weight: 500; }
-        select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(13,148,136,0.15); }
-        
-        .data-table-container {
-            flex-grow: 1;
-            overflow-y: auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            margin-top: 5px;
-        }
-        .data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
-        .data-table th, .data-table td { padding: 11px 14px; border-bottom: 1px solid #f8fafc; }
-        .data-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
-        .allowance-input {
-            width: 110px;
-            padding: 6px 10px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            text-align: right;
-            font-size: 0.95rem;
-            color: var(--primary);
-            font-weight: 500;
-        }
-        .allowance-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(13,148,136,0.15); }
-
-        .map-panel {
-            background: var(--panel-bg);
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            border: 1px solid #e2e8f0;
-        }
-        .map-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
-        .legend { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; background: #f8fafc; padding: 6px 16px; border-radius: 20px; border: 1px solid #e2e8f0; font-weight: 500; }
-        .legend-bar { width: 140px; height: 12px; background: linear-gradient(to right, #f1f5f9, #115e59); border-radius: 6px; }
-        
-        .map-wrapper {
-            flex-grow: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            background: #f8fafc;
-            border-radius: 12px;
-            border: 1px solid #edf2f7;
-            padding: 10px;
-        }
-        svg { width: 100%; height: 100%; max-height: 72vh; }
-        .district-poly { stroke: #ffffff; stroke-width: 1.8; transition: fill 0.2s ease, stroke 0.2s ease; cursor: pointer; }
-        .district-poly:hover { stroke: #0f172a; stroke-width: 2.8; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15)); }
-        .map-label { font-size: 11px; font-weight: bold; fill: #0f172a; text-anchor: middle; dominant-baseline: middle; pointer-events: none; text-shadow: 0px 0px 4px #ffffff, 0px 0px 6px #ffffff; }
-        .tooltip { position: absolute; background: rgba(15, 23, 42, 0.95); color: white; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; pointer-events: none; display: none; z-index: 1000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); line-height: 1.5; }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between antialiased">
 
-<div class="app-container">
-    <div class="sidebar">
-        <h2>📊 中部數據排行面板</h2>
-        <div class="form-group">
-            <label for="county-select">請選擇中部縣市：</label>
-            <select id="county-select">
-                <option value="苗栗縣" selected>苗栗縣（完整地理邊界）</option>
-                <option value="臺中市">臺中市（完整地理邊界）</option>
-                <option value="彰化縣">彰化縣（完整地理邊界）</option>
-                <option value="南投縣">南投縣（完整地理邊界）</option>
-                <option value="雲林縣">雲林縣（完整地理邊界）</option>
-            </select>
-        </div>
-        
-        <label>各行政區津貼金額設定：</label>
-        <div class="data-table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>行政區</th>
-                        <th style="text-align: right;">津貼金額 (元)</th>
-                    </tr>
-                </thead>
-                <tbody id="input-table-body"></tbody>
-            </table>
+<header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <a href="index.html" class="inline-flex items-center gap-2 text-slate-600 hover:text-teal-600 transition-colors font-semibold text-sm">
+            <span>⬅</span> 返回首頁導覽
+        </a>
+        <div class="flex items-center gap-3">
+            <button class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1" onclick="triggerSave()">
+                💾 儲存數據
+            </button>
+            <button class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1" onclick="triggerReset()">
+                🧹 重設數據
+            </button>
         </div>
     </div>
+</header>
 
-    <div class="map-panel">
-        <div class="map-header">
-            <h2 id="map-title">區域真實地理分布</h2>
-            <div class="legend">
-                <span>低津貼</span>
-                <div class="legend-bar"></div>
-                <span>高津貼</span>
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+    <!-- 雙欄排版區：左數據側欄、右地圖主欄 -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        <!-- 左側：數據排行與設定面版 -->
+        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col h-[calc(100vh-240px)] min-h-[500px]">
+            <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <span>📊</span> 中部數據動態排行面版
+            </h2>
+            <div class="mb-4">
+                <label for="county-select" class="block text-xs font-bold text-slate-400 uppercase mb-2">請選擇中部縣市</label>
+                <select id="county-select" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium focus:outline-none focus:border-teal-500 transition-colors cursor-pointer">
+                    <option value="苗栗縣" selected>苗栗縣（完整地理拓撲）</option>
+                    <option value="臺中市">臺中市（完整地理拓撲）</option>
+                    <option value="彰化縣">彰化縣（完整地理拓撲）</option>
+                    <option value="南投縣">南投縣（完整地理拓撲）</option>
+                    <option value="雲林縣">雲林縣（完整地理拓撲）</option>
+                </select>
+            </div>
+            
+            <div class="flex-grow overflow-y-auto border border-slate-100 rounded-xl">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 sticky top-0 z-10 border-b border-slate-100">
+                        <tr>
+                            <th class="px-4 py-3 text-xs font-bold text-slate-400 uppercase">行政區</th>
+                            <th class="px-4 py-3 text-xs font-bold text-slate-400 uppercase text-right">津貼金額 (元)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="input-table-body" class="divide-y divide-slate-50">
+                        <!-- 動態渲染 -->
+                    </tbody>
+                </table>
             </div>
         </div>
-        
-        <div class="map-wrapper">
-            <svg id="taiwan-svg" viewBox="0 0 600 600">
-                <g id="map-features-group"></g>
-                <g id="map-labels-group"></g>
-            </svg>
+
+        <!-- 右側：地圖展示面版 -->
+        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between position-relative h-[calc(100vh-240px)] min-h-[500px]">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+                <h2 id="map-title" class="text-lg font-bold text-slate-900">真實地理分佈熱圖</h2>
+                <div class="flex items-center gap-2 bg-slate-50 border border-slate-150 px-4 py-1.5 rounded-full text-xs font-medium text-slate-500">
+                    <span>低津貼</span>
+                    <div class="w-20 h-2.5 rounded-full bg-gradient-to-r from-slate-100 to-teal-800"></div>
+                    <span>高津貼</span>
+                </div>
+            </div>
+            
+            <div class="flex-grow flex items-center justify-center bg-slate-50 rounded-xl border border-slate-100 p-4 relative overflow-hidden">
+                <svg id="taiwan-svg" class="w-full h-full max-h-[60vh]" viewBox="0 0 600 600">
+                    <g id="map-features-group"></g>
+                    <g id="map-labels-group"></g>
+                </svg>
+                <div id="map-tooltip" class="absolute pointer-events-none hidden bg-slate-900/95 text-white text-xs px-3 py-2 rounded-xl shadow-xl border border-white/10 z-50 transition-all duration-100 line-height-relaxed"></div>
+            </div>
         </div>
-        <div class="tooltip" id="map-tooltip"></div>
+    </div>
+</main>
+
+<div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-white/10">
+    <span class="text-base" id="toast-icon">💾</span>
+    <span class="text-xs font-semibold" id="toast-message">數據已儲存</span>
+</div>
+
+<div id="confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 max-w-sm w-full mx-4 transform scale-90 transition-transform duration-300" id="modal-box">
+        <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl mb-4">⚠️</div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">確定要重設數據嗎？</h3>
+        <p class="text-sm text-slate-500 mb-6 leading-relaxed">重設後，所有中部行政區已填寫的津貼數據將會歸零，此動作無法復原。</p>
+        <div class="flex gap-3 justify-end">
+            <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition-all" onclick="closeConfirmModal()">取消</button>
+            <button class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm shadow-rose-600/10" id="confirm-yes-btn">確定重設</button>
+        </div>
     </div>
 </div>
 
+<footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+    <div>© 2026 台灣地理分佈動態熱圖系統 · 中部地區</div>
+</footer>
+
 <script>
-    const centralGeographicDB = {
+    const STORAGE_KEY = "taiwan_allowance_central_data";
+
+    const geographicDB = {
         "苗栗縣": [
             { id: "mia-zn", name: "竹南鎮", center: [180, 110], path: "M 130,130 L 230,90 L 220,150 L 140,150 Z" },
             { id: "mia-tf", name: "頭份市", center: [250, 105], path: "M 230,90 L 300,90 L 280,150 L 220,150 Z" },
@@ -267,19 +233,97 @@
         ]
     };
 
-    let centralState = {};
+    let localState = {};
 
     function initAppState() {
-        for (const county in centralGeographicDB) {
-            centralState[county] = {};
-            centralGeographicDB[county].forEach(dist => {
-                centralState[county][dist.id] = 0;
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                localState = JSON.parse(saved);
+                for (const county in geographicDB) {
+                    if (!localState[county]) localState[county] = {};
+                    geographicDB[county].forEach(dist => {
+                        if (localState[county][dist.id] === undefined) {
+                            localState[county][dist.id] = 0;
+                        }
+                    });
+                }
+                return;
+            } catch (e) {
+                console.error("載入中部舊有數據失敗，將重新初始化", e);
+            }
+        }
+
+        for (const county in geographicDB) {
+            localState[county] = {};
+            geographicDB[county].forEach(dist => {
+                localState[county][dist.id] = 0;
             });
         }
     }
 
+    function showToast(message, icon = "💾") {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-icon').innerText = icon;
+        document.getElementById('toast-message').innerText = message;
+        
+        toast.classList.remove('opacity-0', 'translate-y-10', 'pointer-events-none');
+        toast.classList.add('opacity-100', 'translate-y-0');
+        
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
+            toast.classList.remove('opacity-100', 'translate-y-0');
+        }, 2500);
+    }
+
+    let onConfirmAction = null;
+    function openConfirmModal(onConfirm) {
+        onConfirmAction = onConfirm;
+        const modal = document.getElementById('confirm-modal');
+        const box = document.getElementById('modal-box');
+        
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        box.classList.remove('scale-90');
+        box.classList.add('scale-100');
+    }
+
+    function closeConfirmModal() {
+        const modal = document.getElementById('confirm-modal');
+        const box = document.getElementById('modal-box');
+        
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        box.classList.remove('scale-100');
+        box.classList.add('scale-90');
+    }
+
+    document.getElementById('confirm-yes-btn').onclick = () => {
+        if (onConfirmAction) onConfirmAction();
+        closeConfirmModal();
+    };
+
+    function triggerSave() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(localState));
+        showToast("中部數據已成功儲存！", "✨");
+    }
+
+    function triggerReset() {
+        openConfirmModal(() => {
+            localStorage.removeItem(STORAGE_KEY);
+            for (const county in geographicDB) {
+                localState[county] = {};
+                geographicDB[county].forEach(dist => {
+                    localState[county][dist.id] = 0;
+                });
+            }
+            const selected = document.getElementById('county-select').value;
+            renderInputPanel(selected);
+            renderSVGMap(selected);
+            showToast("數據已成功重設！", "🧹");
+        });
+    }
+
     function calculateGradientColor(val, min, max) {
-        if (max === min || max === 0) return "#f1f5f9";
+        if (max === min || max === 0) return "#f8fafc";
         const ratio = (val - min) / (max - min);
         const r = Math.round(241 + (17 - 241) * ratio);
         const g = Math.round(245 + (148 - 245) * ratio);
@@ -287,44 +331,76 @@
         return `rgb(${r}, ${g}, ${b})`;
     }
 
+    function updateStats(county) {
+        const values = Object.values(localState[county]);
+        const total = values.reduce((sum, v) => sum + v, 0);
+        const average = values.length ? Math.round(total / values.length) : 0;
+        
+        let maxVal = -1;
+        let maxDistName = "-";
+        geographicDB[county].forEach(dist => {
+            const val = localState[county][dist.id] || 0;
+            if (val > maxVal) {
+                maxVal = val;
+                maxDistName = dist.name;
+            }
+        });
+
+        const totalEl = document.getElementById('stats-total');
+        const avgEl = document.getElementById('stats-average');
+        const maxEl = document.getElementById('stats-max');
+
+        if (totalEl) totalEl.innerText = `$${total.toLocaleString()} 元`;
+        if (avgEl) avgEl.innerText = `$${average.toLocaleString()} 元`;
+        if (maxEl) maxEl.innerText = maxVal > 0 ? `${maxDistName} ($${maxVal.toLocaleString()})` : "-";
+    }
+
     function updateHeatmap(county) {
-        const values = Object.values(centralState[county]);
+        const values = Object.values(localState[county]);
         const max = Math.max(...values, 0);
         const min = Math.min(...values, 0);
 
-        centralGeographicDB[county].forEach(dist => {
+        geographicDB[county].forEach(dist => {
             const polygon = document.getElementById(dist.id);
             if (polygon) {
-                const val = centralState[county][dist.id] || 0;
+                const val = localState[county][dist.id] || 0;
                 polygon.setAttribute('fill', calculateGradientColor(val, min, max));
             }
+            const valLabel = document.getElementById(`val-${dist.id}`);
+            if (valLabel) {
+                const val = localState[county][dist.id] || 0;
+                valLabel.textContent = `$${val.toLocaleString()}`;
+            }
         });
+        updateStats(county);
     }
 
     function renderInputPanel(county) {
         const tbody = document.getElementById('input-table-body');
         tbody.innerHTML = '';
 
-        const sortedDistricts = [...centralGeographicDB[county]].sort((a, b) => {
-            return (centralState[county][b.id] || 0) - (centralState[county][a.id] || 0);
+        const sortedDistricts = [...geographicDB[county]].sort((a, b) => {
+            return (localState[county][b.id] || 0) - (localState[county][a.id] || 0);
         });
 
         sortedDistricts.forEach(dist => {
             const tr = document.createElement('tr');
+            tr.className = "hover:bg-slate-50 transition-colors";
+            
             const tdName = document.createElement('td');
+            tdName.className = "px-4 py-3 text-sm font-semibold text-slate-700";
             tdName.innerText = dist.name;
-            tdName.style.fontWeight = '600';
             
             const tdInput = document.createElement('td');
-            tdInput.style.textAlign = 'right';
+            tdInput.className = "px-4 py-3 text-right";
             
             const input = document.createElement('input');
             input.type = 'number';
-            input.className = 'allowance-input';
-            input.value = centralState[county][dist.id];
+            input.className = 'w-28 bg-slate-50 border border-slate-200 focus:border-teal-500 focus:bg-white text-right px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-800 transition-all outline-none focus:ring-2 focus:ring-teal-500/10';
+            input.value = localState[county][dist.id] || 0;
             
             input.oninput = (e) => {
-                centralState[county][dist.id] = parseFloat(e.target.value) || 0;
+                localState[county][dist.id] = parseFloat(e.target.value) || 0;
                 updateHeatmap(county);
             };
             input.onblur = () => { renderInputPanel(county); };
@@ -344,29 +420,49 @@
         
         featuresGroup.innerHTML = '';
         labelsGroup.innerHTML = '';
-        document.getElementById('map-title').innerText = `${county} 真實地理鄰接拓撲圖`;
+        document.getElementById('map-title').innerText = `${county}真實地理分佈圖`;
 
-        centralGeographicDB[county].forEach(dist => {
+        geographicDB[county].forEach(dist => {
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
             path.setAttribute('d', dist.path);
             path.setAttribute('id', dist.id);
-            path.setAttribute('class', 'district-poly');
-            path.setAttribute('fill', '#f1f5f9');
+            path.setAttribute('class', 'stroke-white hover:stroke-slate-900 transition-all duration-200 cursor-pointer');
+            path.setAttribute('stroke-width', '2');
+            path.setAttribute('fill', '#f8fafc');
             
             path.onmousemove = (e) => {
-                const currentVal = centralState[county][dist.id] || 0;
-                tooltip.style.display = 'block';
+                const currentVal = localState[county][dist.id] || 0;
+                tooltip.classList.remove('hidden');
                 tooltip.style.left = (e.offsetX + 15) + 'px';
                 tooltip.style.top = (e.offsetY + 15) + 'px';
-                tooltip.innerHTML = `<strong>${county} · ${dist.name}</strong><br>津貼金額：$${currentVal.toLocaleString()} 元`;
+                tooltip.innerHTML = `<div class="font-bold text-slate-300 text-[10px] uppercase tracking-wider">${county}</div>
+                                     <div class="text-sm font-extrabold mt-0.5">${dist.name}</div>
+                                     <div class="text-xs text-teal-400 font-semibold mt-1">金額：$${currentVal.toLocaleString()} 元</div>`;
             };
-            path.onmouseleave = () => { tooltip.style.display = 'none'; };
+            path.onmouseleave = () => { tooltip.classList.add('hidden'); };
 
             const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
             text.setAttribute('x', dist.center[0]);
             text.setAttribute('y', dist.center[1]);
-            text.setAttribute('class', 'map-label');
-            text.textContent = dist.name;
+            text.setAttribute('class', 'text-[11px] font-extrabold fill-slate-800 pointer-events-none text-center select-none');
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('dominant-baseline', 'middle');
+
+            // 區域名稱子行
+            const tspanName = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+            tspanName.setAttribute('x', dist.center[0]);
+            tspanName.setAttribute('dy', '-5');
+            tspanName.textContent = dist.name;
+
+            const tspanVal = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+            tspanVal.setAttribute('x', dist.center[0]);
+            tspanVal.setAttribute('dy', '13');
+            tspanVal.setAttribute('id', `val-${dist.id}`);
+            tspanVal.setAttribute('class', 'fill-slate-500 font-medium text-[9px]');
+            tspanVal.textContent = `$${(localState[county][dist.id] || 0).toLocaleString()}`;
+
+            text.appendChild(tspanName);
+            text.appendChild(tspanVal);
 
             featuresGroup.appendChild(path);
             labelsGroup.appendChild(text);
@@ -381,7 +477,6 @@
         renderSVGMap(selected);
     };
 
-    // 啟動地圖系統
     initAppState();
     renderInputPanel("苗栗縣");
     renderSVGMap("苗栗縣");
