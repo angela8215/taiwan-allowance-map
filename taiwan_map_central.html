@@ -153,8 +153,8 @@
                 </div>
             </div>
 
-            <!-- SVG 真實地理畫布包裹層 -->
-            <div class="flex-grow bg-slate-950 border border-slate-800 rounded-xl overflow-hidden relative flex justify-center items-center p-4">
+            <!-- SVG 真實地理畫布包裹層 (已修正為白色背景與淺色邊框) -->
+            <div class="flex-grow bg-white border border-slate-200 rounded-xl overflow-hidden relative flex justify-center items-center p-4">
                 <div id="map-zoom-container" style="transform: scale(1.4); transition: transform 0.1s ease-out; transform-origin: center center;" class="w-full h-full flex justify-center items-center">
                     <!-- 精準對應台灣真實幾何座標邊界 (基於精簡後的台灣中部GIS地圖路徑數據) -->
                     <svg id="taiwan-svg" viewBox="150 150 500 500" class="w-full h-full max-h-[68vh]">
@@ -338,7 +338,7 @@
         }
 
         function calculateGradientColor(val, min, max) {
-            if (max === min || max === 0 || val === 0) return "#1e293b"; // 未填寫時為深藍灰色背景
+            if (max === min || max === 0 || val === 0) return "#f1f5f9"; // 未填寫時改為淺灰色底色
             const ratio = (val - min) / (max - min);
             // 由輕度粉紅變深玫瑰紅
             const r = Math.round(254 + (190 - 254) * ratio);
@@ -421,7 +421,7 @@
                 path.setAttribute('d', dist.path);
                 path.setAttribute('id', dist.id);
                 path.setAttribute('class', 'district-poly');
-                path.setAttribute('fill', '#1e293b');
+                path.setAttribute('fill', '#f1f5f9'); // 未設定時預設為淺灰色
                 
                 path.onmousemove = (e) => {
                     const currentVal = centralState[county][dist.id] || 0;
