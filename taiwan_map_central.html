@@ -25,16 +25,18 @@
             background: #cbd5e1;
             border-radius: 3px;
         }
-        /* 真實行政區多邊形特效 */
+        /* 真實行政區多邊形特效 - 增加白色立體邊框以防止邊界打架 */
         .district-poly {
-            stroke: #475569;
-            stroke-width: 0.6;
+            stroke: #ffffff;
+            stroke-width: 2px;
+            stroke-linejoin: round;
+            stroke-linecap: round;
             transition: fill 0.2s ease, stroke 0.2s ease, filter 0.2s ease;
             cursor: pointer;
         }
         .district-poly:hover {
             stroke: #0f172a;
-            stroke-width: 2;
+            stroke-width: 2.5px;
             filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
             z-index: 30;
         }
@@ -136,32 +138,21 @@
                     <p class="text-xs text-slate-400 mt-0.5">滑鼠移至區域可見詳細資訊</p>
                 </div>
                 
-                <!-- 縮放控制器與圖例 -->
-                <div class="flex items-center flex-wrap gap-4">
-                    <!-- 🔍 無級變倍縮放滑桿 -->
-                    <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-                        <span class="text-xs font-bold text-slate-500 flex items-center gap-1">🔍 縮放</span>
-                        <input type="range" id="zoom-slider" min="80" max="300" value="180" class="w-24 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
-                        <span id="zoom-text" class="text-xs font-mono font-bold text-slate-600 w-10 text-right">180%</span>
-                    </div>
-
-                    <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium">
-                        <span class="text-slate-400">未設定</span>
-                        <div class="w-24 h-2.5 bg-gradient-to-right rounded-full border border-slate-300" style="background: linear-gradient(to right, #f8fafc, #be123c);"></div>
-                        <span class="text-rose-700 font-bold">高階紅</span>
-                    </div>
+                <!-- 圖例說明 -->
+                <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium">
+                    <span class="text-slate-400">未設定</span>
+                    <div class="w-24 h-2.5 bg-gradient-to-right rounded-full border border-slate-300" style="background: linear-gradient(to right, #f8fafc, #be123c);"></div>
+                    <span class="text-rose-700 font-bold">高階紅</span>
                 </div>
             </div>
 
-            <!-- SVG 真實地理畫布包裹層 (確保完美水平、垂直置中且防溢出) -->
+            <!-- SVG 真實地理畫布包裹層 (確保完美置中且滿版) -->
             <div class="flex-grow bg-white border border-slate-200 rounded-xl overflow-hidden relative flex justify-center items-center p-4">
-                <div id="map-zoom-container" style="transform: scale(1.8); transition: transform 0.1s ease-out; transform-origin: center center;" class="w-full h-full flex justify-center items-center">
-                    <!-- 精準對應台灣真實幾何座標邊界 (基於精簡後的台灣中部GIS地圖路徑數據) -->
-                    <svg id="taiwan-svg" viewBox="150 150 500 500" class="w-full h-full max-h-[68vh] flex justify-center items-center">
-                        <g id="map-features-group"></g>
-                        <g id="map-labels-group"></g>
-                    </svg>
-                </div>
+                <!-- SVG 會依據縣市範圍，透過 JS 自動微調 viewBox 實現完美比例與置中 -->
+                <svg id="taiwan-svg" viewBox="150 150 500 500" class="w-full h-full max-h-[68vh] transition-all duration-300">
+                    <g id="map-features-group"></g>
+                    <g id="map-labels-group"></g>
+                </svg>
             </div>
 
             <!-- 浮動提示框 -->
@@ -264,7 +255,7 @@
                 { id: "cha-fy-town", name: "芳苑鄉", center: [180, 400], path: "M 150,330 L 215,330 L 200,475 L 140,465 Z" },
                 { id: "cha-dc-town", name: "大城鄉", center: [165, 525], path: "M 140,465 L 200,475 L 185,580 L 130,570 Z" }
             ],
-            "南投鄉": [
+            "南投縣": [
                 { id: "nan-nt", name: "南投市", center: [240, 280], path: "M 210,250 L 270,245 L 275,315 L 215,310 Z" },
                 { id: "nan-ct", name: "草屯鎮", center: [255, 205], path: "M 205,175 L 305,160 L 295,240 L 210,245 Z" },
                 { id: "nan-gl", name: "國姓鄉", center: [345, 215], path: "M 305,160 L 385,175 L 375,255 L 295,240 Z" },
@@ -359,11 +350,10 @@
                     polygon.setAttribute('fill', calculateGradientColor(val, min, max));
                 }
                 
-                // ⭐ 核心功能：地圖上金額數字即時與左側輸入連動
+                // 核心功能：地圖上金額數字即時與左側輸入連動
                 const textValSpan = document.getElementById(`lbl-val-${dist.id}`);
                 if (textValSpan) {
                     const currentVal = centralState[county][dist.id] || 0;
-                    // 如果大於0，秀出金額字串
                     textValSpan.textContent = currentVal > 0 ? `$${currentVal.toLocaleString()}` : '';
                 }
             });
@@ -395,7 +385,7 @@
                 
                 input.oninput = (e) => {
                     centralState[county][dist.id] = parseFloat(e.target.value) || 0;
-                    updateHeatmap(county); // 輸入瞬間，即時重繪右側熱力圖與金額文字
+                    updateHeatmap(county);
                 };
                 input.onblur = () => { renderInputPanel(county); };
                 input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); };
@@ -408,6 +398,7 @@
         }
 
         function renderSVGMap(county) {
+            const svg = document.getElementById('taiwan-svg');
             const featuresGroup = document.getElementById('map-features-group');
             const labelsGroup = document.getElementById('map-labels-group');
             const tooltip = document.getElementById('map-tooltip');
@@ -416,12 +407,35 @@
             labelsGroup.innerHTML = '';
             document.getElementById('map-title').innerText = `${county}真實地理邊界圖`;
 
-            centralGeographicDB[county].forEach(dist => {
+            const districts = centralGeographicDB[county];
+
+            // 💡 智慧型 Bounding Box 自動計算 - 自動完美置中並最大化地圖
+            let allCoords = [];
+            districts.forEach(dist => {
+                const numbers = dist.path.match(/\d+/g);
+                if (numbers) {
+                    allCoords.push(...numbers.map(Number));
+                }
+            });
+            if (allCoords.length > 0) {
+                const xVals = allCoords.filter((_, idx) => idx % 2 === 0);
+                const yVals = allCoords.filter((_, idx) => idx % 2 === 1);
+                const minX = Math.min(...xVals);
+                const maxX = Math.max(...xVals);
+                const minY = Math.min(...yVals);
+                const maxY = Math.max(...yVals);
+                const width = maxX - minX;
+                const height = maxY - minY;
+                const padding = 25; // 地圖四周完美留白比例
+                svg.setAttribute('viewBox', `${minX - padding} ${minY - padding} ${width + (padding * 2)} ${height + (padding * 2)}`);
+            }
+
+            districts.forEach(dist => {
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 path.setAttribute('d', dist.path);
                 path.setAttribute('id', dist.id);
                 path.setAttribute('class', 'district-poly');
-                path.setAttribute('fill', '#f1f5f9'); // 未設定時預設為淺灰色
+                path.setAttribute('fill', '#f1f5f9');
                 
                 path.onmousemove = (e) => {
                     const currentVal = centralState[county][dist.id] || 0;
@@ -449,7 +463,7 @@
                 tspanName.setAttribute('class', 'tspan-name');
                 tspanName.textContent = dist.name;
 
-                // 即時動態數字（平時隱藏，輸入時同步浮現）
+                // 即時動態數字
                 const tspanVal = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
                 tspanVal.setAttribute('x', dist.center[0]);
                 tspanVal.setAttribute('dy', '12');
@@ -515,17 +529,6 @@
             const selected = e.target.value;
             renderInputPanel(selected);
             renderSVGMap(selected);
-        };
-
-        // 🔍 滑桿無級縮放事件連動
-        const zoomSlider = document.getElementById('zoom-slider');
-        const zoomText = document.getElementById('zoom-text');
-        const zoomContainer = document.getElementById('map-zoom-container');
-
-        zoomSlider.oninput = (e) => {
-            const val = e.target.value;
-            zoomText.textContent = `${val}%`;
-            zoomContainer.style.transform = `scale(${val / 100})`;
         };
 
         // 開機初始化
