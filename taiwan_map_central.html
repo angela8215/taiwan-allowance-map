@@ -3,548 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SP 2026 中部津貼真實地圖系統</title>
+    <title>台灣真實地理邊界地圖</title>
     <!-- 導入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 導入 Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Microsoft JhengHei", sans-serif;
-        }
-        .data-table-container {
-            height: calc(100vh - 220px);
-            overflow-y: auto;
-        }
-        /* 美化滾動條 */
-        .data-table-container::-webkit-scrollbar {
-            width: 6px;
-        }
-        .data-table-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .data-table-container::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
+        body, html { margin: 0; padding: 0; height: 100%; }
+        #map { height: calc(100vh - 80px); width: 100%; }
+        
         /* 真實行政區邊界特效 */
         .district-poly {
-            stroke: #475569;
-            stroke-width: 0.5;
-            stroke-linejoin: round;
-            transition: fill 0.2s ease, stroke 0.2s ease, filter 0.2s ease;
-            cursor: pointer;
-        }
-        .district-poly:hover {
-            stroke: #0f172a;
-            stroke-width: 1.5;
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
-            z-index: 30;
-        }
-        /* 核心：文字與數字雙行高對比描邊 */
-        .map-label {
-            font-weight: 800;
-            fill: #0f172a;
-            text-anchor: middle;
-            dominant-baseline: middle;
-            pointer-events: none;
-        }
-        .tspan-name {
-            font-size: 11px;
-            stroke: #ffffff;
-            stroke-width: 3px;
-            paint-order: stroke fill;
-        }
-        .tspan-val {
-            font-size: 10px;
-            fill: #be123c; /* 高奢玫瑰紅數字 */
-            stroke: #ffffff;
-            stroke-width: 3px;
-            paint-order: stroke fill;
-            font-weight: 900;
+            transition: fill-opacity 0.2s, stroke-width 0.2s;
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-700 min-h-screen flex flex-col">
+<body class="bg-slate-100 flex flex-col h-screen">
 
-    <!-- 頂部高階整合控制列 -->
-    <header class="bg-indigo-900 text-white shadow-md px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 sticky top-0 z-40">
-        <div class="flex items-center gap-4">
-            <a href="index.html" class="flex items-center gap-2 bg-indigo-800 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm border border-indigo-700">
-                <span>⬅ 返回首頁導覽</span>
-            </a>
-            <h1 class="text-xl font-bold tracking-wide flex items-center gap-2">
-                <span>🗺️ 中部真實地理津貼連動地圖</span>
-            </h1>
+    <!-- 頂部標題與說明 -->
+    <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center h-[80px]">
+        <div>
+            <h1 class="text-xl font-bold">台灣真實地理邊界地圖</h1>
+            <p class="text-xs opacity-90">基於真實 GeoJSON 邊界與模擬津貼數據著色</p>
         </div>
-        
-        <!-- 操作按鈕群 -->
-        <div class="flex items-center flex-wrap gap-2">
-            <button onclick="saveToStorage()" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm">
-                <span>💾 儲存數據</span>
-            </button>
-            <button onclick="triggerResetModal()" class="flex items-center gap-1 bg-rose-600 hover:bg-rose-500 px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm">
-                <span>🧹 重設數據</span>
-            </button>
-            <button onclick="exportBakingHTML()" class="flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm">
-                <span>📊 匯出數據</span>
-            </button>
+        <div class="text-sm bg-blue-700 px-3 py-1.5 rounded">
+            滑鼠懸停可高亮，點擊可看詳細資訊
         </div>
     </header>
 
-    <!-- 主程式容器 -->
-    <main class="flex-grow p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-[1600px] w-full mx-auto">
-        
-        <!-- 左側設定面版 -->
-        <div class="lg:col-span-4 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col h-[calc(100vh-120px)]">
-            <div class="mb-4">
-                <label for="county-select" class="block font-bold text-slate-700 mb-2 text-sm">請選擇中部縣市：</label>
-                <select id="county-select" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-base font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition cursor-pointer">
-                    <option value="臺中市" selected>臺中市</option>
-                    <option value="苗栗縣">苗栗縣</option>
-                    <option value="彰化縣">彰化縣</option>
-                    <option value="南投縣">南投縣</option>
-                    <option value="雲林縣">雲林縣</option>
-                </select>
-            </div>
-            
-            <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-100">
-                <span class="font-bold text-slate-800 text-sm">行政區數據微調排名</span>
-                <span class="text-xs text-rose-600 font-semibold">修改後右側地圖同步秀出數字</span>
-            </div>
-
-            <!-- 排行列表 -->
-            <div class="data-table-container">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 text-slate-500 text-xs font-bold sticky top-0 z-10 border-b border-slate-200">
-                            <th class="p-3">行政區</th>
-                            <th class="p-3 text-right">津貼金額 (元)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="input-table-body" class="divide-y divide-slate-100 text-sm">
-                        <!-- 動態插入 -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 右側真實地理地圖展示區塊 -->
-        <div class="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col h-[calc(100vh-120px)] relative">
-            
-            <!-- 地圖輔助控制列 -->
-            <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pb-4 mb-4 border-b border-slate-100">
-                <div>
-                    <h2 id="map-title" class="text-lg font-bold text-slate-800">真實地理輪廓邊界圖</h2>
-                    <p class="text-xs text-slate-400 mt-0.5">滑鼠移至區域可見詳細資訊</p>
-                </div>
-                
-                <!-- 縮放控制器與圖例 -->
-                <div class="flex items-center flex-wrap gap-4">
-                    <!-- 🔍 無級變倍縮放滑桿 -->
-                    <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-                        <span class="text-xs font-bold text-slate-500 flex items-center gap-1">🔍 縮放</span>
-                        <input type="range" id="zoom-slider" min="80" max="300" value="100" class="w-24 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
-                        <span id="zoom-text" class="text-xs font-mono font-bold text-slate-600 w-10 text-right">100%</span>
-                    </div>
-
-                    <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium">
-                        <span class="text-slate-400">未設定</span>
-                        <div class="w-24 h-2.5 bg-gradient-to-right rounded-full border border-slate-300" style="background: linear-gradient(to right, #f8fafc, #be123c);"></div>
-                        <span class="text-rose-700 font-bold">高階紅</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SVG 真實地理畫布包裹層 -->
-            <div class="flex-grow bg-white border border-slate-200 rounded-xl overflow-hidden relative flex justify-center items-center p-4">
-                <div id="map-zoom-container" style="transform: scale(1.0); transition: transform 0.1s ease-out; transform-origin: center center;" class="w-full h-full flex justify-center items-center">
-                    <!-- 使用標準台灣真實 GIS 經緯度投影縮放視窗 -->
-                    <svg id="taiwan-svg" viewBox="0 0 800 600" class="w-full h-full max-h-[68vh]">
-                        <g id="map-features-group"></g>
-                        <g id="map-labels-group"></g>
-                    </svg>
-                </div>
-            </div>
-
-            <!-- 浮動提示框 -->
-            <div id="map-tooltip" class="absolute pointer-events-none bg-slate-900/95 text-white text-xs px-3 py-2.5 rounded-xl shadow-xl border border-slate-700/50 hidden z-50 transition-all duration-75"></div>
-        </div>
-    </main>
-
-    <!-- 防呆確認對話框 -->
-    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center hidden">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 scale-95 transition-transform duration-300 mx-4">
-            <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">⚠️ 安全重設確認</h3>
-            <p class="text-sm text-slate-500 mt-3 leading-relaxed">這個動作將會把您輸入的「中部數據」完全清空歸零。請問您確定要重設嗎？</p>
-            <div class="flex justify-end gap-2 mt-6">
-                <button onclick="closeResetModal()" class="px-4 py-2 text-sm font-semibold bg-slate-100 hover:bg-slate-200 rounded-xl transition text-slate-600">取消</button>
-                <button onclick="executeResetData()" class="px-4 py-2 text-sm font-semibold bg-rose-600 hover:bg-rose-500 text-white rounded-xl transition shadow-sm">確認清空</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 輕量提示框 -->
-    <div id="toast-notify" class="fixed bottom-5 right-5 bg-slate-900 text-white font-medium text-sm px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2 transform translate-y-10 opacity-0 transition-all duration-300 z-50 border border-slate-700">
-        <span id="toast-message">✨ 數據儲存成功！</span>
-    </div>
+    <!-- 地圖容器 -->
+    <div id="map"></div>
 
     <script>
-        // 【高精度真實地理形狀數據庫】
-        // 已採用台灣真實地理 GIS 拓撲邊界進行還原，呈現真實的行政區細緻邊緣。
-        const centralGeographicDB = {
-            "臺中市": [
-                { id: "tcm-dj", name: "大甲區", center: [260, 190], path: "M 235,170 C 245,175 255,170 265,172 C 275,175 282,185 280,195 C 278,205 268,212 255,215 C 242,218 230,210 228,195 C 226,182 230,172 235,170 Z" },
-                { id: "tcm-da", name: "大安區", center: [210, 195], path: "M 195,185 C 205,182 218,188 225,190 C 228,198 225,208 215,212 C 205,216 195,208 192,200 C 190,192 192,186 195,185 Z" },
-                { id: "tcm-qs", name: "清水區", center: [230, 245], path: "M 205,215 C 215,212 225,215 235,218 C 245,220 255,215 258,225 C 262,238 258,252 250,265 C 240,275 225,278 215,270 C 205,262 200,248 202,235 C 204,222 201,218 205,215 Z" },
-                { id: "tcm-sl", name: "沙鹿區", center: [255, 285], path: "M 245,265 C 255,268 262,262 272,268 C 280,272 282,285 278,295 C 272,305 260,308 250,302 C 242,298 240,288 242,278 C 244,268 242,266 245,265 Z" },
-                { id: "tcm-wc", name: "梧棲區", center: [210, 280], path: "M 195,265 C 205,265 215,268 225,270 C 228,278 225,288 218,295 C 210,300 200,298 195,290 C 190,282 192,270 195,265 Z" },
-                { id: "tcm-lj", name: "龍井區", center: [225, 325], path: "M 215,295 C 225,295 235,302 240,310 C 242,320 238,332 230,340 C 220,348 210,345 205,335 C 200,325 205,310 212,302 C 214,298 212,296 215,295 Z" },
-                { id: "tcm-dd", name: "大肚區", center: [260, 345], path: "M 245,310 C 255,308 268,312 272,322 C 276,335 270,348 262,358 C 252,365 240,360 235,350 C 230,340 238,322 245,310 Z" },
-                { id: "tcm-wp", name: "外埔區", center: [285, 195], path: "M 272,185 C 282,180 295,185 305,190 C 310,198 308,208 298,212 C 288,216 278,212 272,202 C 268,195 270,188 272,185 Z" },
-                { id: "tcm-hl", name: "后里區", center: [325, 190], path: "M 310,180 C 325,178 340,182 355,185 C 360,195 358,208 345,212 C 332,216 318,212 312,202 C 308,192 312,182 310,180 Z" },
-                { id: "tcm-sg", name: "神岡區", center: [300, 235], path: "M 285,220 C 295,218 310,222 320,225 C 322,232 318,242 310,248 C 300,252 290,248 285,238 C 282,230 282,222 285,220 Z" },
-                { id: "tcm-dy", name: "大雅區", center: [300, 270], path: "M 285,255 C 295,252 308,255 315,260 C 318,268 315,278 308,282 C 300,286 290,282 285,275 C 282,268 282,258 285,255 Z" },
-                { id: "tcm-fy", name: "豐原區", center: [350, 235], path: "M 330,220 C 345,218 360,222 370,230 C 375,242 370,255 358,260 C 345,265 332,260 328,248 C 325,238 328,225 330,220 Z" },
-                { id: "tcm-tz", name: "潭子區", center: [345, 280], path: "M 330,265 C 342,262 355,268 360,275 C 362,285 358,295 348,298 C 338,300 328,295 325,285 C 322,278 325,268 330,265 Z" },
-                { id: "tcm-xt", name: "西屯區", center: [315, 310], path: "M 295,295 C 308,292 322,298 328,305 C 330,315 325,325 315,328 C 302,330 290,325 288,315 C 286,305 290,298 295,295 Z" },
-                { id: "tcm-nt", name: "南屯區", center: [310, 350], path: "M 295,335 C 305,332 318,338 322,345 C 325,355 320,365 310,368 C 300,370 290,365 288,355 C 286,345 290,338 295,335 Z" },
-                { id: "tcm-cc", name: "北中南東區", center: [345, 325], path: "M 335,310 C 348,308 358,312 362,320 C 365,330 360,340 350,342 C 340,345 330,340 328,330 C 326,320 330,312 335,310 Z" },
-                { id: "tcm-bt", name: "北屯區", center: [380, 290], path: "M 360,270 C 375,265 392,272 400,285 C 405,298 398,312 385,315 C 372,318 358,312 355,298 C 352,285 355,272 360,270 Z" },
-                { id: "tcm-tp", name: "太平區", center: [430, 345], path: "M 395,315 C 415,310 435,320 445,335 C 450,355 442,375 425,385 C 410,392 390,385 382,370 C 375,355 380,330 395,315 Z" },
-                { id: "tcm-dl", name: "大里區", center: [365, 365], path: "M 350,348 C 362,345 375,350 380,358 C 385,368 380,378 370,382 C 360,385 350,380 348,370 C 346,360 350,350 350,348 Z" },
-                { id: "tcm-wr", name: "烏日區", center: [335, 400], path: "M 315,380 C 330,375 348,382 352,395 C 355,410 348,425 332,430 C 318,435 300,425 298,410 C 296,395 305,385 315,380 Z" },
-                { id: "tcm-wf", name: "霧峰區", center: [390, 420], path: "M 370,390 C 388,385 405,395 412,410 C 418,430 410,450 392,460 C 375,468 358,458 352,440 C 348,420 355,395 370,390 Z" },
-                { id: "tcm-ds", name: "東勢區", center: [420, 220], path: "M 395,200 C 415,195 435,205 442,220 C 448,238 440,255 422,262 C 405,268 388,258 382,240 C 378,222 382,205 395,200 Z" },
-                { id: "tcm-sg-town", name: "石岡區", center: [385, 230], path: "M 375,220 C 385,218 395,222 398,228 C 400,235 395,242 388,245 C 380,248 372,242 370,235 C 368,228 370,220 375,220 Z" },
-                { id: "tcm-xs", name: "新社區", center: [435, 265], path: "M 412,245 C 428,240 445,248 452,262 C 458,278 450,295 435,302 C 420,308 402,298 398,282 C 395,265 400,248 412,245 Z" },
-                { id: "tcm-hp", name: "和平區", center: [540, 240], path: "M 465,190 C 500,160 550,170 590,200 C 630,230 650,280 620,320 C 590,350 530,360 490,320 C 460,290 450,230 465,190 Z" }
-            ],
-            "苗栗縣": [
-                { id: "mia-zn", name: "竹南鎮", center: [340, 190], path: "M 315,175 C 328,170 345,172 355,182 C 362,192 358,208 345,212 C 332,216 318,208 312,198 C 308,188 310,178 315,175 Z" },
-                { id: "mia-tf", name: "頭份市", center: [385, 195], path: "M 365,180 C 378,178 395,182 402,192 C 408,202 402,218 390,222 C 378,226 362,218 358,208 C 355,198 358,182 365,180 Z" },
-                { id: "mia-sw", name: "三灣鄉", center: [425, 210], path: "M 408,195 C 418,190 432,195 438,205 C 442,215 438,228 428,232 C 418,236 405,228 402,218 C 400,208 402,198 408,195 Z" },
-                { id: "mia-nz", name: "南莊鄉", center: [475, 240], path: "M 445,210 C 465,200 488,210 498,228 C 508,248 498,272 478,282 C 458,292 435,282 428,262 C 422,242 430,218 445,210 Z" },
-                { id: "mia-zc", name: "造橋鄉", center: [345, 225], path: "M 328,212 C 338,208 352,212 358,222 C 362,232 358,245 348,248 C 338,252 325,245 322,235 C 320,225 322,215 328,212 Z" },
-                { id: "mia-tw", name: "頭屋鄉", center: [385, 245], path: "M 368,230 C 378,225 392,230 398,240 C 402,250 398,262 388,265 C 378,268 365,262 362,252 C 360,242 362,232 368,230 Z" },
-                { id: "mia-st", name: "獅潭鄉", center: [430, 265], path: "M 412,245 C 425,240 438,248 442,260 C 445,272 438,285 425,288 C 412,292 400,285 398,272 C 395,260 402,248 412,245 Z" },
-                { id: "mia-hl", name: "後龍鎮", center: [290, 230], path: "M 265,212 C 280,205 298,210 305,225 C 312,240 305,258 290,262 C 275,266 258,258 252,242 C 248,228 255,215 265,212 Z" },
-                { id: "mia-ml", name: "苗栗市", center: [335, 275], path: "M 315,260 C 328,255 342,260 348,270 C 352,280 348,295 338,298 C 328,302 315,295 312,285 C 308,275 310,262 315,260 Z" },
-                { id: "mia-gg", name: "公館鄉", center: [380, 300], path: "M 358,280 C 372,275 388,280 395,292 C 400,305 395,320 382,325 C 370,330 355,322 350,310 C 345,298 348,282 358,280 Z" },
-                { id: "mia-dh", name: "大湖鄉", center: [415, 360], path: "M 390,335 C 405,328 425,335 432,350 C 438,368 430,388 412,395 C 395,400 378,390 372,372 C 368,355 375,340 390,335 Z" },
-                { id: "mia-xh", name: "西湖鄉", center: [285, 290], path: "M 262,272 C 275,268 290,272 295,282 C 300,292 295,308 285,312 C 275,316 260,308 258,298 C 255,288 258,275 262,272 Z" },
-                { id: "mia-tl", name: "銅鑼鄉", center: [330, 335], path: "M 312,315 C 325,310 340,315 345,325 C 350,335 345,350 335,355 C 325,360 310,352 308,342 C 305,330 308,318 312,315 Z" },
-                { id: "mia-sy", name: "三義鄉", center: [330, 395], path: "M 308,370 C 322,365 338,370 342,382 C 348,395 342,412 330,418 C 318,422 302,415 298,402 C 295,390 298,375 308,370 Z" },
-                { id: "mia-ts", name: "通霄鎮", center: [260, 355], path: "M 235,325 C 255,315 278,322 285,342 C 292,362 285,385 265,392 C 245,400 222,390 215,370 C 208,350 215,330 235,325 Z" },
-                { id: "mia-yl", name: "苑裡鎮", center: [255, 425], path: "M 225,400 C 245,392 268,400 275,420 C 282,440 272,462 252,470 C 232,478 210,468 202,448 C 195,428 205,408 225,400 Z" },
-                { id: "mia-zl", name: "卓蘭鎮", center: [390, 430], path: "M 358,412 C 375,408 392,415 398,428 C 402,442 395,458 382,462 C 370,468 352,460 348,445 C 342,430 345,415 358,412 Z" },
-                { id: "mia-ta", name: "泰安鄉", center: [495, 365], path: "M 445,310 C 475,280 525,290 555,325 C 585,360 575,412 540,440 C 505,468 455,458 425,420 C 395,385 415,330 445,310 Z" }
-            ],
-            "彰化縣": [
-                { id: "cha-ch", name: "彰化市", center: [350, 240], path: "M 322,220 C 338,215 358,220 368,232 C 378,245 372,262 358,268 C 345,272 325,268 318,255 C 312,242 315,225 322,220 Z" },
-                { id: "cha-hm", name: "和美鎮", center: [300, 205], path: "M 275,190 C 290,185 308,190 315,202 C 322,215 315,230 302,235 C 290,240 272,235 265,222 C 258,210 262,195 275,190 Z" },
-                { id: "cha-xs", name: "線西鄉", center: [250, 220], path: "M 230,205 C 242,200 255,205 260,215 C 265,225 260,238 250,242 C 240,246 228,240 222,230 C 218,220 220,210 230,205 Z" },
-                { id: "cha-sg", name: "伸港鄉", center: [255, 175], path: "M 235,160 C 248,155 262,160 268,170 C 272,180 268,192 258,195 C 248,198 235,192 230,182 C 225,172 228,162 235,160 Z" },
-                { id: "cha-lk", name: "鹿港鎮", center: [255, 280], path: "M 225,255 C 242,250 260,258 265,272 C 270,288 262,305 248,310 C 232,315 215,308 208,292 C 202,278 210,260 225,255 Z" },
-                { id: "cha-fx", name: "福興鄉", center: [245, 345], path: "M 215,320 C 232,315 250,322 255,338 C 260,355 252,372 235,378 C 218,382 200,375 195,358 C 190,342 198,325 215,320 Z" },
-                { id: "cha-ss", name: "秀水鄉", center: [310, 290], path: "M 292,272 C 305,268 318,272 325,282 C 330,292 325,305 315,310 C 305,315 292,310 288,300 C 285,290 285,278 292,272 Z" },
-                { id: "cha-ht", name: "花壇鄉", center: [360, 300], path: "M 338,282 C 352,278 368,282 375,295 C 382,308 375,322 362,328 C 350,332 335,328 328,315 C 322,302 325,288 338,282 Z" },
-                { id: "cha-fy", name: "芬園鄉", center: [415, 280], path: "M 395,260 C 410,255 428,260 435,272 C 442,285 435,302 422,308 C 410,312 392,308 385,295 C 378,282 382,265 395,260 Z" },
-                { id: "cha-dc", name: "大村鄉", center: [355, 360], path: "M 328,342 C 342,338 358,342 365,352 C 370,362 365,375 355,380 C 345,385 328,380 322,370 C 318,360 320,348 328,342 Z" },
-                { id: "cha-yl", name: "員林市", center: [405, 375], path: "M 382,348 C 398,342 415,348 422,360 C 428,372 422,388 410,392 C 398,398 380,392 375,380 C 370,368 372,352 382,348 Z" },
-                { id: "cha-st", name: "社頭鄉", center: [400, 445], path: "M 375,412 C 392,408 410,415 418,428 C 425,442 418,458 405,462 C 392,468 375,460 368,445 C 362,430 365,415 375,412 Z" },
-                { id: "cha-tc", name: "田中鎮", center: [390, 510], path: "M 362,482 C 378,478 395,485 402,498 C 408,512 402,528 390,532 C 378,538 360,530 355,515 C 350,500 352,488 362,482 Z" },
-                { id: "cha-es", name: "二水鄉", center: [415, 570], path: "M 390,545 C 405,540 422,548 428,560 C 435,572 428,588 415,592 C 402,598 385,590 380,578 C 375,565 378,550 390,545 Z" },
-                { id: "cha-tw", name: "田尾鄉", center: [340, 445], path: "M 318,428 C 330,422 345,428 350,438 C 355,448 350,460 340,465 C 330,470 318,465 312,455 C 308,445 310,432 318,428 Z" },
-                { id: "cha-yj", name: "永靖鄉", center: [345, 395], path: "M 322,382 C 335,378 348,382 352,392 C 358,402 352,415 342,418 C 332,422 320,418 315,408 C 310,398 312,388 322,382 Z" },
-                { id: "cha-px", name: "埔心鄉", center: [300, 395], path: "M 282,382 C 295,378 308,382 312,392 C 318,402 312,415 302,418 C 292,422 280,418 275,408 C 270,398 272,388 282,382 Z" },
-                { id: "cha-py", name: "埔鹽鄉", center: [285, 345], path: "M 262,328 C 278,322 295,328 302,342 C 308,355 302,372 288,378 C 275,382 258,375 252,360 C 248,345 250,332 262,328 Z" },
-                { id: "cha-xh", name: "溪湖鎮", center: [290, 445], path: "M 265,428 C 278,422 292,428 298,438 C 302,448 298,460 288,465 C 278,470 265,465 260,455 C 255,445 258,432 265,428 Z" },
-                { id: "cha-pt", name: "埤頭鄉", center: [295, 515], path: "M 265,492 C 282,488 300,495 308,510 C 315,525 308,542 292,548 C 275,552 258,545 252,530 C 248,515 252,498 265,492 Z" },
-                { id: "cha-bd", name: "北斗鎮", center: [355, 505], path: "M 328,492 C 342,488 358,495 365,508 C 370,520 365,535 352,540 C 340,545 325,540 318,528 C 312,515 315,498 328,492 Z" },
-                { id: "cha-xz", name: "溪州鄉", center: [345, 570], path: "M 315,548 C 335,540 358,548 368,568 C 378,588 368,610 348,615 C 328,620 305,610 298,590 C 290,570 298,555 315,548 Z" },
-                { id: "cha-zt", name: "竹塘鄉", center: [235, 555], path: "M 205,532 C 222,528 240,535 248,548 C 255,562 248,578 235,582 C 222,588 205,580 198,565 C 192,550 195,538 205,532 Z" },
-                { id: "cha-el", name: "二林鎮", center: [225, 465], path: "M 195,420 C 218,412 242,420 252,440 C 262,460 252,485 232,495 C 212,505 188,495 178,475 C 168,455 175,430 195,420 Z" },
-                { id: "cha-fy-town", name: "芳苑鄉", center: [180, 400], path: "M 155,350 C 175,342 198,350 205,370 C 212,390 202,412 182,420 C 162,428 140,418 132,398 C 125,378 135,358 155,350 Z" },
-                { id: "cha-dc-town", name: "大城鄉", center: [165, 525], path: "M 145,500 C 162,492 185,500 192,520 C 200,540 190,562 170,570 C 150,578 128,568 120,548 C 112,528 125,508 145,500 Z" }
-            ],
-            "南投縣": [
-                { id: "nan-nt", name: "南投市", center: [240, 280], path: "M 215,255 C 230,250 248,255 255,270 C 262,285 255,302 240,308 C 225,312 208,305 202,290 C 195,275 202,260 215,255 Z" },
-                { id: "nan-ct", name: "草屯鎮", center: [255, 205], path: "M 220,180 C 242,170 268,178 278,198 C 288,218 278,242 258,252 C 238,262 215,252 205,232 C 195,212 200,190 220,180 Z" },
-                { id: "nan-gl", name: "國姓鄉", center: [345, 215], path: "M 315,185 C 335,178 358,185 368,205 C 378,225 368,248 348,258 C 328,268 305,258 295,238 C 285,218 295,195 315,185 Z" },
-                { id: "nan-pl", name: "埔里鎮", center: [415, 245], path: "M 385,220 C 405,212 428,220 435,238 C 442,255 435,272 418,278 C 400,282 382,275 375,258 C 368,240 372,225 385,220 Z" },
-                { id: "nan-ra", name: "仁愛鄉", center: [505, 230], path: "M 465,170 C 510,140 565,150 600,190 C 635,230 635,285 600,320 C 565,350 510,340 475,300 C 445,260 435,200 465,170 Z" },
-                { id: "nan-yc", name: "魚池鄉", center: [395, 325], path: "M 365,300 C 382,295 400,302 408,318 C 415,335 408,352 392,358 C 375,362 358,355 350,338 C 342,322 350,305 365,300 Z" },
-                { id: "nan-cl", name: "中寮鄉", center: [305, 325], path: "M 282,300 C 298,295 315,302 322,318 C 328,335 322,352 305,358 C 288,362 272,355 265,338 C 258,322 268,305 282,300 Z" },
-                { id: "nan-mj", name: "名間鄉", center: [225, 355], path: "M 195,330 C 212,325 230,332 235,348 C 240,365 232,382 215,388 C 198,392 180,385 175,368 C 170,352 178,335 195,330 Z" },
-                { id: "nan-zs", name: "竹山鎮", center: [220, 465], path: "M 195,410 C 218,400 242,408 252,428 C 262,448 252,472 232,482 C 212,492 188,482 178,462 C 168,442 175,420 195,410 Z" },
-                { id: "nan-lg", name: "鹿谷鄉", center: [295, 465], path: "M 265,412 C 282,408 300,415 308,428 C 315,442 308,458 292,462 C 275,468 258,460 252,445 C 245,430 248,415 265,412 Z" },
-                { id: "nan-jj", name: "集集鎮", center: [295, 385], path: "M 272,370 C 285,365 298,370 302,380 C 308,390 302,402 292,405 C 282,408 270,402 265,392 C 260,382 262,370 272,370 Z" },
-                { id: "nan-sl", name: "水里鄉", center: [355, 415], path: "M 328,382 C 342,378 358,382 365,392 C 370,402 365,415 355,418 C 345,422 328,418 322,408 C 318,398 320,388 328,382 Z" },
-                { id: "nan-xy", name: "信義鄉", center: [435, 495], path: "M 412,380 C 445,350 500,360 535,395 C 570,430 560,485 525,515 C 490,545 435,535 400,500 C 370,465 380,410 412,380 Z" }
-            ],
-            "雲林縣": [
-                { id: "yun-dl", name: "斗六市", center: [390, 310], path: "M 362,290 C 375,285 392,290 398,300 C 402,310 398,322 388,325 C 378,328 365,322 362,312 C 360,302 362,292 362,290 Z" },
-                { id: "yun-dn", name: "斗南鎮", center: [330, 345], path: "M 302,325 C 315,320 330,325 335,335 C 340,345 335,358 325,362 C 315,365 300,358 298,348 C 295,338 298,328 302,325 Z" },
-                { id: "yun-hw", name: "虎尾鎮", center: [290, 305], path: "M 262,285 C 278,280 295,285 302,295 C 308,305 302,318 288,322 C 275,325 258,318 252,308 C 248,298 250,288 262,285 Z" },
-                { id: "yun-xs", name: "西螺鎮", center: [305, 240], path: "M 275,225 C 290,220 308,225 315,235 C 322,245 315,258 302,262 C 290,265 272,258 265,248 C 258,238 262,225 275,225 Z" },
-                { id: "yun-tk", name: "土庫鎮", center: [245, 335], path: "M 222,315 C 235,310 248,315 252,325 C 258,335 252,348 242,352 C 232,355 220,348 215,338 C 210,328 212,318 222,315 Z" },
-                { id: "yun-bg", name: "北港鎮", center: [225, 465], path: "M 202,445 C 215,440 228,445 232,455 C 238,465 232,478 222,482 C 212,485 200,478 195,468 C 190,458 192,448 202,445 Z" },
-                { id: "yun-gk", name: "古坑鄉", center: [435, 415], path: "M 395,350 C 418,342 442,350 452,370 C 462,390 452,415 432,425 C 412,435 388,425 378,405 C 368,385 375,360 395,350 Z" },
-                { id: "yun-dp", name: "大埤鄉", center: [325, 395], path: "M 298,375 C 310,370 325,375 330,385 C 335,395 330,408 320,412 C 310,415 298,408 292,398 C 288,388 290,378 298,375 Z" },
-                { id: "yun-ct", name: "莿桐鄉", center: [355, 265], path: "M 330,248 C 342,242 358,248 365,258 C 370,268 365,280 355,285 C 345,290 328,285 322,275 C 318,265 320,252 330,248 Z" },
-                { id: "yun-ln", name: "林內鄉", center: [415, 245], path: "M 390,230 C 402,225 415,230 422,240 C 428,250 422,262 410,265 C 398,268 385,262 380,252 C 375,242 378,232 390,230 Z" },
-                { id: "yun-el", name: "二崙鄉", center: [245, 245], path: "M 220,230 C 235,225 248,230 252,240 C 258,250 252,262 242,265 C 232,268 220,262 215,252 C 210,242 212,232 220,230 Z" },
-                { id: "yun-lb", name: "崙背鄉", center: [205, 280], path: "M 182,265 C 195,260 208,265 212,275 C 218,285 212,298 202,302 C 192,305 180,298 175,288 C 170,278 172,268 182,265 Z" },
-                { id: "yun-ml", name: "麥寮鄉", center: [155, 245], path: "M 125,230 C 142,222 160,230 165,245 C 170,260 162,278 148,282 C 132,288 115,280 108,265 C 102,250 110,232 125,230 Z" },
-                { id: "yun-ds", name: "東勢鄉", center: [165, 335], path: "M 145,315 C 158,310 172,315 178,325 C 182,335 178,348 168,352 C 158,355 145,348 140,338 C 135,328 138,318 145,315 Z" },
-                { id: "yun-bz", name: "褒忠鄉", center: [215, 325], path: "M 195,308 C 208,302 222,308 228,318 C 232,328 228,340 218,345 C 208,348 195,342 190,332 C 185,322 188,312 195,308 Z" },
-                { id: "yun-ts", name: "臺西鄉", center: [120, 305], path: "M 102,285 C 115,280 128,285 132,295 C 138,305 132,318 122,322 C 112,325 100,318 95,308 C 90,298 92,288 102,285 Z" },
-                { id: "yun-yc-town", name: "元長鄉", center: [235, 395], path: "M 215,372 C 228,368 242,372 248,382 C 252,392 248,405 238,410 C 228,415 215,410 212,400 C 208,390 210,378 215,372 Z" },
-                { id: "yun-sh", name: "四湖鄉", center: [135, 395], path: "M 115,370 C 132,362 150,370 155,385 C 160,400 152,418 135,422 C 118,428 100,418 95,402 C 90,385 98,370 115,370 Z" },
-                { id: "yun-kh", name: "口湖鄉", center: [135, 485], path: "M 115,460 C 132,452 150,460 155,475 C 160,490 152,508 135,512 C 118,518 100,508 95,492 C 90,475 98,460 115,460 Z" },
-                { id: "yun-sl-town", name: "水林鄉", center: [195, 515], path: "M 175,490 C 192,482 210,490 215,505 C 220,520 212,538 195,542 C 178,548 160,538 155,522 C 150,505 158,490 175,490 Z" }
-            ]
+        // 1. 初始化地圖（設定中心點在台灣中部）
+        const map = L.map('map').setView([23.6, 121.0], 8);
+
+        // 2. 載入底圖 (使用 CartoDB 乾淨的淺色底圖，更適合凸顯資料)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        }).addTo(map);
+
+        // 3. 模擬各縣市的津貼金額數據（對照 GeoJSON 中的 COUNTYNAME 欄位）
+        const allowanceData = {
+            "臺北市": 5000, "新北市": 4500, "桃園市": 4000, "臺中市": 3500,
+            "臺南市": 3000, "高雄市": 4800, "基隆市": 2500, "新竹市": 5000,
+            "新竹縣": 3000, "苗栗縣": 1500, "彰化縣": 2000, "南投縣": 1800,
+            "雲林縣": 2200, "嘉義市": 2800, "嘉義縣": 1600, "屏東縣": 2000,
+            "宜蘭縣": 2500, "花蓮縣": 3000, "臺東縣": 3200, "澎湖縣": 4000,
+            "金門縣": 6000, "連江縣": 6500
         };
 
-        let centralState = {};
+        // 4. 根據津貼金額決定填滿顏色的函式
+        function getColor(amount) {
+            if (!amount) return '#cbd5e1'; // 沒數據時顯灰色
+            return amount > 5000 ? '#1d4ed8' : // 深藍
+                   amount > 4000 ? '#3b82f6' : // 藍
+                   amount > 3000 ? '#60a5fa' : // 淺藍
+                   amount > 2000 ? '#93c5fd' : // 極淺藍
+                                   '#dbeafe';   // 粉藍
+        }
 
-        function initAppState() {
-            const savedData = localStorage.getItem('central_allowance_real_data');
-            if (savedData) {
-                try { centralState = JSON.parse(savedData); } catch(e) { buildFreshState(); }
-            } else if (Object.keys(centralState).length === 0) {
-                buildFreshState();
-            }
-            
-            for (const county in centralGeographicDB) {
-                if (!centralState[county]) centralState[county] = {};
-                centralGeographicDB[county].forEach(dist => {
-                    if (centralState[county][dist.id] === undefined) {
-                        centralState[county][dist.id] = 0;
+        // 5. 異步載入 g0v 的 台灣縣市邊界 GeoJSON
+        const geojsonUrl = 'https://raw.githubusercontent.com/g0v/twgeojson/master/json/twCounty2010.json';
+
+        fetch(geojsonUrl)
+            .then(response => {
+                if (!response.ok) throw new Error('無法取得地圖資料');
+                return response.json();
+            })
+            .then(geojsonData => {
+                let geojsonLayer = L.geoJSON(geojsonData, {
+                    // 設定每個多邊形（縣市）的初始樣式
+                    style: function(feature) {
+                        // 讀取該行政區名稱（注意：此 GeoJSON 欄位為 COUNTYNAME）
+                        const countyName = feature.properties.COUNTYNAME;
+                        const amount = allowanceData[countyName] || 0;
+
+                        return {
+                            fillColor: getColor(amount),
+                            weight: 1.5,
+                            opacity: 1,
+                            color: '#ffffff', // 邊界線顏色（白色）
+                            fillOpacity: 0.75,
+                            className: 'district-poly' // 綁定 CSS class 方便做轉場
+                        };
+                    },
+                    // 綁定每個行政區的互動事件
+                    onEachFeature: function(feature, layer) {
+                        const countyName = feature.properties.COUNTYNAME;
+                        const amount = allowanceData[countyName] || "無數據";
+
+                        // 滑鼠互動效果
+                        layer.on({
+                            mouseover: function(e) {
+                                const target = e.target;
+                                target.setStyle({
+                                    weight: 3,
+                                    color: '#1e293b', // 滑鼠懸停時邊界變深灰色
+                                    fillOpacity: 0.9
+                                });
+                                target.bringToFront(); // 將當前高亮的區域移到最上層
+                            },
+                            mouseout: function(e) {
+                                geojsonLayer.resetStyle(e.target); // 滑鼠移開還原樣式
+                            },
+                            click: function(e) {
+                                // 點擊時在地圖中心彈出資訊
+                                layer.bindPopup(`
+                                    <div class="p-1">
+                                        <h3 class="text-base font-bold text-gray-800">${countyName}</h3>
+                                        <hr class="my-1">
+                                        <p class="text-sm text-gray-600">目前補助津貼：<strong class="text-blue-600">${amount}</strong> 元</p>
+                                    </div>
+                                `).openPopup(e.latlng);
+                            }
+                        });
                     }
-                });
-            }
-        }
-
-        function buildFreshState() {
-            centralState = {};
-            for (const county in centralGeographicDB) {
-                centralState[county] = {};
-                centralGeographicDB[county].forEach(dist => {
-                    centralState[county][dist.id] = 0;
-                });
-            }
-        }
-
-        function calculateGradientColor(val, min, max) {
-            if (max === min || max === 0 || val === 0) return "#f1f5f9"; 
-            const ratio = (val - min) / (max - min);
-            const r = Math.round(254 + (190 - 254) * ratio);
-            const g = Math.round(226 + (18 - 226) * ratio);
-            const b = Math.round(226 + (60 - 226) * ratio);
-            return `rgb(${r}, ${g}, ${b})`;
-        }
-
-        function updateHeatmap(county) {
-            const values = Object.values(centralState[county]);
-            const max = Math.max(...values, 0);
-            const min = 0;
-
-            centralGeographicDB[county].forEach(dist => {
-                const polygon = document.getElementById(dist.id);
-                if (polygon) {
-                    const val = centralState[county][dist.id] || 0;
-                    polygon.setAttribute('fill', calculateGradientColor(val, min, max));
-                }
-                
-                const textValSpan = document.getElementById(`lbl-val-${dist.id}`);
-                if (textValSpan) {
-                    const currentVal = centralState[county][dist.id] || 0;
-                    textValSpan.textContent = currentVal > 0 ? `$${currentVal.toLocaleString()}` : '';
-                }
+                }).addTo(map);
+            })
+            .catch(error => {
+                console.error('載入地圖發生錯誤:', error);
+                alert('地圖圖資載入失敗，請確認網路連線是否正常。');
             });
-        }
-
-        function renderInputPanel(county) {
-            const tbody = document.getElementById('input-table-body');
-            tbody.innerHTML = '';
-
-            const sortedDistricts = [...centralGeographicDB[county]].sort((a, b) => {
-                return (centralState[county][b.id] || 0) - (centralState[county][a.id] || 0);
-            });
-
-            sortedDistricts.forEach(dist => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition duration-150";
-                
-                const tdName = document.createElement('td');
-                tdName.className = "p-3 font-semibold text-slate-700";
-                tdName.innerText = dist.name;
-                
-                const tdInput = document.createElement('td');
-                tdInput.className = "p-3 text-right";
-                
-                const input = document.createElement('input');
-                input.type = 'number';
-                input.className = 'w-32 bg-slate-50 border border-slate-200 text-slate-800 text-right rounded-lg px-2.5 py-1.5 font-semibold text-sm focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition';
-                input.value = centralState[county][dist.id];
-                
-                input.oninput = (e) => {
-                    centralState[county][dist.id] = parseFloat(e.target.value) || 0;
-                    updateHeatmap(county); 
-                };
-                input.onblur = () => { renderInputPanel(county); };
-                input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); };
-
-                tdInput.appendChild(input);
-                tr.appendChild(tdName);
-                tr.appendChild(tdInput);
-                tbody.appendChild(tr);
-            });
-        }
-
-        function renderSVGMap(county) {
-            const featuresGroup = document.getElementById('map-features-group');
-            const labelsGroup = document.getElementById('map-labels-group');
-            const tooltip = document.getElementById('map-tooltip');
-            
-            featuresGroup.innerHTML = '';
-            labelsGroup.innerHTML = '';
-            document.getElementById('map-title').innerText = `${county}真實地理邊界圖`;
-
-            // 計算當前縣市地圖的包圍盒 (Bounding Box) 以動態置中並最大化顯示真實地理形狀
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-            centralGeographicDB[county].forEach(dist => {
-                // 簡易解析貝氏曲線與座標點來計算 ViewBox 邊界，讓地圖完美滿版
-                const coords = dist.path.match(/[-+]?[0-9]*\.?[0-9]+/g).map(Number);
-                for (let i = 0; i < coords.length; i += 2) {
-                    if (coords[i] < minX) minX = coords[i];
-                    if (coords[i] > maxX) maxX = coords[i];
-                    if (coords[i+1] < minY) minY = coords[i+1];
-                    if (coords[i+1] > maxY) maxY = coords[i+1];
-                }
-            });
-
-            // 加上 Padding 避免邊界被切到
-            const pad = 40;
-            const width = (maxX - minX) + pad * 2;
-            const height = (maxY - minY) + pad * 2;
-            const svg = document.getElementById('taiwan-svg');
-            svg.setAttribute('viewBox', `${minX - pad} ${minY - pad} ${width} ${height}`);
-
-            centralGeographicDB[county].forEach(dist => {
-                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                path.setAttribute('d', dist.path);
-                path.setAttribute('id', dist.id);
-                path.setAttribute('class', 'district-poly');
-                path.setAttribute('fill', '#f1f5f9'); 
-                
-                path.onmousemove = (e) => {
-                    const currentVal = centralState[county][dist.id] || 0;
-                    tooltip.style.display = 'block';
-                    tooltip.style.left = (e.clientX + 15) + 'px';
-                    tooltip.style.top = (e.clientY + 15) + 'px';
-                    tooltip.innerHTML = `
-                        <div class="font-bold text-slate-400 text-xs">${county}</div>
-                        <div class="text-sm font-extrabold text-white mt-0.5">${dist.name}</div>
-                        <div class="text-rose-400 font-mono font-bold mt-1 border-t border-slate-700 pt-1">當前金額：$${currentVal.toLocaleString()} 元</div>
-                    `;
-                };
-                path.onmouseleave = () => { tooltip.style.display = 'none'; };
-
-                // 建立地圖標籤
-                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                text.setAttribute('x', dist.center[0]);
-                text.setAttribute('y', dist.center[1]);
-                text.setAttribute('class', 'map-label');
-
-                const tspanName = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-                tspanName.setAttribute('x', dist.center[0]);
-                tspanName.setAttribute('dy', '-2');
-                tspanName.setAttribute('class', 'tspan-name');
-                tspanName.textContent = dist.name;
-
-                const tspanVal = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-                tspanVal.setAttribute('x', dist.center[0]);
-                tspanVal.setAttribute('dy', '12');
-                tspanVal.setAttribute('id', `lbl-val-${dist.id}`);
-                tspanVal.setAttribute('class', 'tspan-val');
-                tspanVal.textContent = '';
-
-                text.appendChild(tspanName);
-                text.appendChild(tspanVal);
-
-                featuresGroup.appendChild(path);
-                labelsGroup.appendChild(text);
-            });
-
-            updateHeatmap(county);
-        }
-
-        function saveToStorage() {
-            localStorage.setItem('central_allowance_real_data', JSON.stringify(centralState));
-            showToastNotify("✨ 數據已成功寫入快取記憶！");
-        }
-
-        function triggerResetModal() {
-            document.getElementById('confirm-modal').classList.remove('hidden');
-        }
-        function closeResetModal() {
-            document.getElementById('confirm-modal').classList.add('hidden');
-        }
-        function executeResetData() {
-            buildFreshState();
-            localStorage.removeItem('central_allowance_real_data');
-            const currentCounty = document.getElementById('county-select').value;
-            renderInputPanel(currentCounty);
-            renderSVGMap(currentCounty);
-            closeResetModal();
-            showToastNotify("🧹 數據已全數成功清空！");
-        }
-
-        function exportBakingHTML() {
-            const currentCode = document.documentElement.outerHTML;
-            const stateString = JSON.stringify(centralState, null, 2);
-            const regex = /\/\/ INJECT_START[\s\S]*?\/\/ INJECT_END/;
-            const newCode = currentCode.replace(regex, `// INJECT_START\n        let centralState = ${stateString};\n        // INJECT_END`);
-            
-            const blob = new Blob(["<!DOCTYPE html>\n" + newCode], { type: "text/html;charset=utf-8" });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "taiwan_map_central_real.html";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            showToastNotify("📊 真實數據已成功匯出網頁！");
-        }
-
-        function showToastNotify(msg) {
-            const toast = document.getElementById('toast-notify');
-            document.getElementById('toast-message').textContent = msg;
-            toast.classList.remove('translate-y-10', 'opacity-0');
-            setTimeout(() => { toast.classList.add('translate-y-10', 'opacity-0'); }, 2500);
-        }
-
-        document.getElementById('county-select').onchange = (e) => {
-            const selected = e.target.value;
-            renderInputPanel(selected);
-            renderSVGMap(selected);
-        };
-
-        const zoomSlider = document.getElementById('zoom-slider');
-        const zoomText = document.getElementById('zoom-text');
-        const zoomContainer = document.getElementById('map-zoom-container');
-
-        zoomSlider.oninput = (e) => {
-            const val = e.target.value;
-            zoomText.textContent = `${val}%`;
-            zoomContainer.style.transform = `scale(${val / 100})`;
-        };
-
-        initAppState();
-        const initialCounty = document.getElementById('county-select').value;
-        renderInputPanel(initialCounty);
-        renderSVGMap(initialCounty);
     </script>
 </body>
 </html>
