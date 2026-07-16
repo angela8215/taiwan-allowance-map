@@ -141,8 +141,8 @@
                     <!-- 🔍 無級變倍縮放滑桿 -->
                     <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
                         <span class="text-xs font-bold text-slate-500 flex items-center gap-1">🔍 縮放</span>
-                        <input type="range" id="zoom-slider" min="80" max="300" value="140" class="w-24 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
-                        <span id="zoom-text" class="text-xs font-mono font-bold text-slate-600 w-10 text-right">140%</span>
+                        <input type="range" id="zoom-slider" min="80" max="300" value="180" class="w-24 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                        <span id="zoom-text" class="text-xs font-mono font-bold text-slate-600 w-10 text-right">180%</span>
                     </div>
 
                     <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium">
@@ -153,11 +153,11 @@
                 </div>
             </div>
 
-            <!-- SVG 真實地理畫布包裹層 (已修正為白色背景與淺色邊框) -->
+            <!-- SVG 真實地理畫布包裹層 (確保完美水平、垂直置中且防溢出) -->
             <div class="flex-grow bg-white border border-slate-200 rounded-xl overflow-hidden relative flex justify-center items-center p-4">
-                <div id="map-zoom-container" style="transform: scale(1.4); transition: transform 0.1s ease-out; transform-origin: center center;" class="w-full h-full flex justify-center items-center">
+                <div id="map-zoom-container" style="transform: scale(1.8); transition: transform 0.1s ease-out; transform-origin: center center;" class="w-full h-full flex justify-center items-center">
                     <!-- 精準對應台灣真實幾何座標邊界 (基於精簡後的台灣中部GIS地圖路徑數據) -->
-                    <svg id="taiwan-svg" viewBox="150 150 500 500" class="w-full h-full max-h-[68vh]">
+                    <svg id="taiwan-svg" viewBox="150 150 500 500" class="w-full h-full max-h-[68vh] flex justify-center items-center">
                         <g id="map-features-group"></g>
                         <g id="map-labels-group"></g>
                     </svg>
@@ -264,7 +264,7 @@
                 { id: "cha-fy-town", name: "芳苑鄉", center: [180, 400], path: "M 150,330 L 215,330 L 200,475 L 140,465 Z" },
                 { id: "cha-dc-town", name: "大城鄉", center: [165, 525], path: "M 140,465 L 200,475 L 185,580 L 130,570 Z" }
             ],
-            "南投縣": [
+            "南投鄉": [
                 { id: "nan-nt", name: "南投市", center: [240, 280], path: "M 210,250 L 270,245 L 275,315 L 215,310 Z" },
                 { id: "nan-ct", name: "草屯鎮", center: [255, 205], path: "M 205,175 L 305,160 L 295,240 L 210,245 Z" },
                 { id: "nan-gl", name: "國姓鄉", center: [345, 215], path: "M 305,160 L 385,175 L 375,255 L 295,240 Z" },
